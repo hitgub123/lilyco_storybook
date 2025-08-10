@@ -137,7 +137,7 @@ export async function getStaticPaths() {
 
 	let fullPaths = [];
 	for (let i = 0; i < folders.length; i++) {
-		fullPaths.push({ params: { photoId: folders[i].name ,subId:0} });
+		fullPaths.push({ params: { slug: [folders[i].name] } });
 	}
 	// console.log(fullPaths);
 	return {
