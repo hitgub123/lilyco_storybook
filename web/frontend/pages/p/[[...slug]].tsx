@@ -14,6 +14,7 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	const slug = router.query.slug;
 
 	// console.log('slug', slug);
+	console.log('images', images);
 
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
@@ -36,6 +37,16 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 			<Head>
 				<title>Comic Page</title>
 			</Head>
+			{!images.length && (
+				<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
+					<div className="absolute inset-0 flex items-center justify-center opacity-20">
+						<span className="absolute left-0 right-0 bottom-0 h-[400px] bg-gradient-to-b from-black/0 via-black to-black"></span>
+					</div>
+
+					<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">Comic Page</h1>
+					<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">No storybook found!</p>
+				</div>
+			)}
 			<main className="mx-auto max-w-[1960px] p-4">
 				{/* {subId && /^\d+$/.test(subId) && ( */}
 				{subId && (
@@ -122,7 +133,7 @@ export async function getStaticProps(context: any) {
 	for (let i = 0; i < reducedResults.length; i++) {
 		reducedResults[i].blurDataUrl = imagesWithBlurDataUrls[i];
 	}
-  	// console.log('reducedResults', reducedResults[0]);
+	// console.log('reducedResults', reducedResults[0]);
 	return {
 		props: {
 			images: reducedResults,
@@ -131,15 +142,13 @@ export async function getStaticProps(context: any) {
 }
 
 export async function getStaticPaths() {
+	let fullPaths = [];
+
 	const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
 	const folders = results.folders;
-	// console.log(results)
-
-	let fullPaths = [];
 	for (let i = 0; i < folders.length; i++) {
 		fullPaths.push({ params: { slug: [folders[i].name] } });
 	}
-	// console.log(fullPaths);
 	return {
 		paths: fullPaths,
 		fallback: false,
@@ -147,7 +156,6 @@ export async function getStaticPaths() {
 	// return {
 	// 	paths: [
 	// 		{ params: { slug: ['3'] } },
-	// 		{ params: { slug: ['3', '0'] } },
 	// 	],
 	// 	// paths: [],
 	// 	fallback: false,
