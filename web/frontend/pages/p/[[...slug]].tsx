@@ -109,7 +109,7 @@ export async function getStaticProps(context: any) {
 		.expression(`folder:${process.env.CLOUDINARY_FOLDER}/${index}`)
 		// .expression(`folder:={process.env.CLOUDINARY_FOLDER}`)
 		.sort_by('public_id', 'desc')
-		.max_results(10)
+		.max_results(100)
 		.execute();
 	let reducedResults: ImageProps[] = [];
 	// console.log('results', results);
