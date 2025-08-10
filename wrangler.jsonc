@@ -1,0 +1,33 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "novel-comic-site",
+
+	"pages_build_output_dir": "frontend\\out",
+	"compatibility_date": "2025-08-07",
+	"observability": {
+		"enabled": true
+	},
+	// "assets": {
+	// 	"directory": "./public"
+	// },
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "novel-comic-db",
+			"database_id": "67f75bfa-874b-4bfb-a573-4e91a7f376f4"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "COMIC_BUCKET",
+			"bucket_name": "novel-comic-bucket",
+			"preview_bucket_name": "novel-comic-bucket-preview"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "SETTINGS_KV",
+			"id": "dff4f6d389f34d20b6ef80d2c3c1215f"
+		}
+	]
+}

@@ -1,0 +1,25 @@
+PRAGMA defer_foreign_keys=TRUE;
+CREATE TABLE Users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO "Users" VALUES(1,'hotococoalj@163.com','364314974351b7ce96b8e1fd6ff4b806:aa4c268196a2370c149573666226bcb5c27f1dd2fddb02b728a47366e3623225','2025-08-08 03:39:59');
+CREATE TABLE Novels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    author TEXT,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE Comics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    novel_id INTEGER NOT NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (novel_id) REFERENCES Novels(id)
+);
+DELETE FROM sqlite_sequence;
+INSERT INTO "sqlite_sequence" VALUES('Users',1);
