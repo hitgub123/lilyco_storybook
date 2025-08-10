@@ -1,0 +1,47 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - "main" # 这里假设你的主分支是 main，如果不是请修改
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    name: Publish to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # 使用 Node.js 20，如果你的项目需要特定版本请修改
+
+      - name: Install Frontend Dependencies
+        run: npm install
+        working-directory: ./web/frontend
+
+      - name: Build Next.js Application
+        run: npx next build
+        working-directory: ./web/frontend
+        env:
+          # 从 GitHub Secrets 引用你的 Cloudinary 凭证
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          CLOUDINARY_FOLDER: ${{ secrets.CLOUDINARY_FOLDER }}
+          # 在非 Vercel 平台构建 Next.js 时建议禁用遥测
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: "novel-comic-site" # 这是从 wrangler.jsonc 读取到的项目名
+          directory: "./web/frontend/out" # 指定要部署的构建输出目录
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }} # 可选，用于在 Cloudflare 上展示提交信息
