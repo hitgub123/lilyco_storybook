@@ -131,27 +131,25 @@ export async function getStaticProps(context: any) {
 }
 
 export async function getStaticPaths() {
-	// const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
-	// const folders = results.folders;
-	// // console.log(results)
+	const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
+	const folders = results.folders;
+	// console.log(results)
 
-	// let fullPaths = [];
-	// for (let i = 0; i < folders.length; i++) {
-	// 	fullPaths.push({ params: { photoId: folders[i].name ,subId:0} });
-	// }
-	// // console.log(fullPaths);
-	// return {
-	// 	paths: fullPaths,
-	// 	fallback: false,
-	// };
+	let fullPaths = [];
+	for (let i = 0; i < folders.length; i++) {
+		fullPaths.push({ params: { photoId: folders[i].name ,subId:0} });
+	}
+	// console.log(fullPaths);
 	return {
-		paths: [
-			{ params: { slug: ['3'] } },
-			{ params: { slug: ['3', '0'] } },
-			{ params: { slug: ['3', '1'] } },
-			{ params: { slug: ['3', 'x'] } },
-		],
-		// paths: [],
+		paths: fullPaths,
 		fallback: false,
 	};
+	// return {
+	// 	paths: [
+	// 		{ params: { slug: ['3'] } },
+	// 		{ params: { slug: ['3', '0'] } },
+	// 	],
+	// 	// paths: [],
+	// 	fallback: false,
+	// };
 }

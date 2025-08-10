@@ -9,7 +9,7 @@
 	},
 	// "assets": {
 	// 	"directory": "./public"
-	// },
+	// }, 
 	"d1_databases": [
 		{
 			"binding": "DB",
