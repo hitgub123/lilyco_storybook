@@ -44,4 +44,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: "novel-comic-site" # 这是从 wrangler.jsonc 读取到的项目名
           directory: "./web/frontend/out" # 指定要部署的构建输出目录
+          configPath: "./web/wrangler.jsonc"
           gitHubToken: ${{ secrets.GITHUB_TOKEN }} # 可选，用于在 Cloudflare 上展示提交信息
