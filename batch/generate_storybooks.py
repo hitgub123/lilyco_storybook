@@ -18,7 +18,7 @@ def get_browser(playwright: Playwright):
 
     # target_page = context.pages[-1]
     target_page = None
-    TARGET_URL_PART = "gemini.google.com/storybook"
+    TARGET_URL_PART = "storybook"
     # 遍历所有浏览器上下文（通常只有一个）
     for context in browser.contexts:
         # 遍历该上下文中的所有页面（标签页）
@@ -33,16 +33,15 @@ def get_browser(playwright: Playwright):
     # 如果遍历完所有页面还是没找到，就报错退出
     if not target_page:
         logger.error(
-            f"错误：在所有打开的标签页中，没有找到包含 '{TARGET_URL_PART}' 的页面。"
+            f"错误：在所有打开的标签页中，没有找到包含 '{TARGET_URL_PART}' 的页面。\n请确认你已经在指定的浏览器窗口中手动打开并登录了目标网站。"
         )
-        logger.error("请确认你已经在指定的浏览器窗口中手动打开并登录了目标网站。")
         browser.close()
-        return
+        raise Exception(f"not found target page {TARGET_URL_PART}")
     logger.debug(f"连接成功！当前页面是: {page.title()}")
     return browser, context, target_page
 
 
-def run(prompt,browser=None, context=None, target_page=None):
+def run(prompt, id=1,browser=None, context=None, target_page=None):
     if not browser or not context or not target_page:
         browser, context, target_page = get_browser(playwright)
 
@@ -52,6 +51,8 @@ def run(prompt,browser=None, context=None, target_page=None):
         input_box = target_page.locator("rich-textarea p").first
         # 等待元素可见
         expect(input_box).to_be_visible(timeout=60)
+
+        prompt = f"不要让我补充内容，按我给的上下文和你自己的想法，为这个故事生成绘本:{prompt}"
         input_box.fill(prompt)
 
         time.sleep(1)
@@ -62,7 +63,8 @@ def run(prompt,browser=None, context=None, target_page=None):
 
         logger.debug("正在等待share_button元素加载...")
         # expect 会在这里暂停脚本，直到元素可见，或者超时（默认30秒）
-        expect(share_button).to_be_visible(timeout=180 * 1000)
+        # expect(share_button).to_be_visible(timeout=180 * 1000)
+        expect(share_button).to_be_enabled(timeout=180 * 1000)
         share_button.click()
 
         button = share_button.locator("button").nth(1)
@@ -100,7 +102,7 @@ def run(prompt,browser=None, context=None, target_page=None):
             else:
                 storybook_content = new_tab.locator("storybook")
             expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
-            screenshot_path = f"/asset/pic/not_done/{current_page}.jpg"
+            screenshot_path = f"asset/pic/not_done/{id}-{current_page}.jpg"
             storybook_content.screenshot(path=screenshot_path)
             logger.debug(f"操作成功！截图{screenshot_path}已保存。")
             current_page += 1
@@ -109,6 +111,7 @@ def run(prompt,browser=None, context=None, target_page=None):
             next_page_button.click()
             time.sleep(3)
         new_tab.close()
+        return True
 
     except Exception as e:
         logger.error(f"发生错误: {e}")
@@ -120,9 +123,20 @@ def run(prompt,browser=None, context=None, target_page=None):
 
 
 if __name__ == "__main__":
+    from task_manager import Task_manager
+
+    tm = Task_manager()
+    tasks = tm.read_df_from_csv()
+    target_task = tasks.loc[tasks["is_target"] == 1]
+    # text_lst=target_task['text'].tolist()
+
     # --- 运行主程序 ---
     with sync_playwright() as playwright:
         browser, context, target_page = get_browser(playwright)
-        story = "兔子托比在林间小溪上漂流,它沿途看到了很多鱼，它和其中一只叫波利的安康鱼做了朋友"
-        prompt = f"不要问我问题，按我给的上下文和你的想法帮我做一个storybook:{story}"
-        run(prompt,browser, context, target_page)
+        for _,task in target_task.iterrows():
+            # prompt = "兔子托比在林间小溪上漂流,它沿途看到了很多鱼，它和其中一只叫波利的安康鱼做了朋友"
+            prompt = task["text"]
+            id = task["id"]
+            res = run(prompt,id, browser, context, target_page)
+            if res:
+                tasks.loc[id, "generate_storybook"] = 1

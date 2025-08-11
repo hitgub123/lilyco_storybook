@@ -1,18 +1,29 @@
 import pandas as pd
 import os
 from logger_config import get_logger
-import cloudinary_util, generate_storybooks, generate_stories
 
 logger = get_logger(__name__)
 
 
 class Task_manager:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        csv_path="asset/task.csv",
+        csv_columns=[
+            "id",
+            "text",
+            "generate_storybook",
+            "upload_storybook",
+            "is_target",
+            "pic",
+        ],
+        encoding="utf-8-sig",
+    ) -> None:
 
         # 定义 CSV 文件的路径和列名
-        self.CSV_PATH = os.path.join("asset/task.csv")
-        self.CSV_COLUMNS = ["id", "文本", "生成storybook", "上传storybook"]
-        self.encoding = "utf-8-sig"
+        self.CSV_PATH = csv_path
+        self.CSV_COLUMNS = csv_columns
+        self.encoding = encoding
 
     def read_df_from_csv(self):
         return pd.read_csv(self.CSV_PATH)
@@ -43,6 +54,8 @@ class Task_manager:
                     self.CSV_COLUMNS[1]: text,
                     self.CSV_COLUMNS[2]: 0,
                     self.CSV_COLUMNS[3]: 0,
+                    self.CSV_COLUMNS[4]: 1,
+                    self.CSV_COLUMNS[5]: 0,
                 }
             )
 
@@ -95,5 +108,6 @@ if __name__ == "__main__":
 
     # 调用主方法
     tm = Task_manager()
+    df = tm.read_df_from_csv()
     tm.insert_task(tasks_to_add)
-    tm.update_task(df=None)
+    # tm.update_task(df=None)

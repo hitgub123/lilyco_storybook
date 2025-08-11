@@ -5,6 +5,8 @@
 import json
 from typing import List, Callable
 from logger_config import get_logger
+from gemini_api_util import get_llm
+from langchain_core.messages import AIMessage
 
 logger = get_logger(__name__)
 
@@ -39,11 +41,28 @@ class MockLLM:
         """模拟名为 'invoke' 的LLM生成方法。"""
         return self._generate_response(prompt, "invoke")
 
+def extract_json_from_string(text: str) -> dict | None:
+    # 找到第一个 '{' 的位置
+    start_index = text.find("{")
+    # 找到最后一个 '}' 的位置
+    end_index = text.rfind("}")
+
+    if (
+        start_index != -1
+        and start_index < 10
+        and end_index != -1
+        and end_index > start_index
+    ):
+        # 截取从第一个 '{' 到最后一个 '}' 的子字符串
+        text = text[start_index : end_index + 1]
+        # 解析截取后的纯净JSON字符串
+    return json.loads(text)
+
 
 def generate_stories_by_generation_func(
     topic: str,
     generation_func: Callable[[str], str],
-    count: int = 3,
+    number_of_stories: int = 3,
     word_count: int = 30,
 ) -> List[str]:
     """
@@ -54,7 +73,7 @@ def generate_stories_by_generation_func(
         generation_func (Callable[[str], str]): 用于生成文本的函数。
             这个函数应该接受一个字符串提示(prompt)作为输入，并返回一个字符串结果。
             例如: my_llm_client.complete 或 my_llm_client.invoke
-        count (int): 需要生成的故事数量。
+        number_of_stories (int): 需要生成的故事数量。
         word_count (int): 每个故事的大致字数。
 
     Returns:
@@ -63,7 +82,7 @@ def generate_stories_by_generation_func(
     # 构建一个清晰、具体的提示，要求LLM返回JSON格式
     prompt = f"""请根据以下主题生成一个JSON对象。
 主题：'{topic}'
-对象应该包含一个名为 "stories" 的键，其值是一个包含 {count} 个字符串的数组。
+对象应该包含一个名为 "stories" 的键，其值是一个包含 {number_of_stories} 个字符串的数组。
 每个字符串都应该是一个关于主题的、长度在{word_count}个字左右的独立小故事。
 请确保您的回答是严格的JSON格式，不要包含任何额外的解释或注释。"""
 
@@ -71,9 +90,12 @@ def generate_stories_by_generation_func(
     try:
         # 调用传入的函数来获取结果
         response_text = generation_func(prompt)
+        logger.info(response_text)
 
         # 解析LLM返回的JSON字符串
-        data = json.loads(response_text)
+        if isinstance(response_text, AIMessage):
+            response_text=response_text.content
+        data = extract_json_from_string(response_text)
 
         # 从解析后的数据中提取故事列表
         stories = data.get("stories", [])
@@ -98,44 +120,30 @@ def generate_stories_by_generation_func(
 # --- 主程序入口，用于演示和测试 ---
 if __name__ == "__main__":
     # 1. 创建一个模拟的LLM实例
-    mock_llm_client = MockLLM()
+    llm = get_llm()
 
     # 2. 定义故事主题和数量
     story_topic = "一只勇敢的小猫"
-    number_of_stories = 3
+    number_of_stories = 30
 
-    # 3. 调用函数生成故事，演示传入 complete 方法
-    logger.debug(f"--- 演示1: 使用 mock_llm_client.complete 方法 ---")
-    logger.debug(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
+    # 3. 调用函数生成故事，演示传入方法
+    print(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
     generated_stories_1 = generate_stories_by_generation_func(
         topic=story_topic,
-        count=number_of_stories,
-        generation_func=mock_llm_client.complete,  # 直接把方法作为参数传入
+        number_of_stories=number_of_stories,
+        # generation_func=MockLLM().complete,  # 直接把方法作为参数传入
+        generation_func=llm.invoke,  # 直接把方法作为参数传入
     )
 
     # 4. 打印结果
     if generated_stories_1:
-        logger.debug("\n--- 成功生成的故事列表 (来自complete) ---")
+        print("\n--- 成功生成的故事列表---")
         for i, story in enumerate(generated_stories_1, 1):
-            logger.debug(f"{i}. {story}")
+            print(f"{i}. {story}")
     else:
-        logger.error("\n--- 未能生成故事 (来自complete) ---")
+        logger.error("\n--- 未能生成故事 ---")
 
-    logger.debug("\n" + "=" * 50 + "\n")
-
-    # 5. 再次调用函数，演示传入 invoke 方法
-    logger.debug(f"--- 演示2: 使用 mock_llm_client.invoke 方法 ---")
-    logger.debug(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
-    generated_stories_2 = generate_stories_by_generation_func(
-        topic=story_topic,
-        count=number_of_stories,
-        generation_func=mock_llm_client.invoke,  # 传入另一个方法
-    )
-
-    # 6. 打印结果
-    if generated_stories_2:
-        logger.debug("\n--- 成功生成的故事列表 (来自invoke) ---")
-        for i, story in enumerate(generated_stories_2, 1):
-            logger.debug(f"{i}. {story}")
-    else:
-        logger.error("\n--- 未能生成故事 (来自invoke) ---")
+    from task_manager import Task_manager
+    tm = Task_manager()
+    tm.insert_task(generated_stories_1)
+    # tm.update_task(df=None)

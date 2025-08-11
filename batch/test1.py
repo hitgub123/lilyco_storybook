@@ -1,6 +1,7 @@
-from logger_config import get_logger
+from task_manager import Task_manager
+tm = Task_manager()
 
-logger = get_logger(__name__)
-
-logger.debug('debug')
-logger.error('error')
+tasks = tm.read_df_from_csv()
+target_task = tasks.loc[tasks["is_target"] == 1]
+for i,r in target_task.iterrows():
+    print(i,r)

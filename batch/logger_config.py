@@ -8,7 +8,8 @@ LOG_LEVEL = os.getenv("LOG_LEVEL")
 # LOG_DIR = os.path.join(os.path.dirname(__file__), 'log')
 LOG_DIR = "log"
 LOG_FORMAT = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
-MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+LOG_FORMAT_ERROR = "%(asctime)s - %(funcName)s - %(lineno)d - %(levelname)s - %(message)s"
+MAX_BYTES = 8 * 1024 * 1024  # 8 MB
 # MAX_BYTES = 300
 BACKUP_COUNT = 5
 
@@ -58,16 +59,16 @@ def get_logger(name: str):
         root_logger.addHandler(debug_handler)
 
         # 2. 同时配置 error.log handler (ERROR 级别)
-        # error_log_path = os.path.join(LOG_DIR, "error.log")
-        # error_handler = RotatingFileHandler(
-        #     error_log_path,
-        #     maxBytes=MAX_BYTES,
-        #     backupCount=BACKUP_COUNT,
-        #     encoding="utf-8",
-        # )
-        # error_handler.setLevel(logging.ERROR)
-        # error_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-        # root_logger.addHandler(error_handler)
+        error_log_path = os.path.join(LOG_DIR, "error.log")
+        error_handler = RotatingFileHandler(
+            error_log_path,
+            maxBytes=MAX_BYTES,
+            backupCount=BACKUP_COUNT,
+            encoding="utf-8",
+        )
+        error_handler.setLevel(logging.ERROR)
+        error_handler.setFormatter(logging.Formatter(LOG_FORMAT_ERROR))
+        root_logger.addHandler(error_handler)
 
         # 3. (可选) 配置控制台输出 handler
         # console_handler = logging.StreamHandler()
