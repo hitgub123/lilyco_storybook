@@ -1,13 +1,6 @@
-import os,datetime
+from logger_config import get_logger
 
-DONE_MD_PATH = "asset/cloudonary_done.md"
+logger = get_logger(__name__)
 
-def main():
-    with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
-        md_file.write(f"{datetime.datetime.now()}\n")
-
-    
-
-
-if __name__ == "__main__":
-    main()
+logger.debug('debug')
+logger.error('error')

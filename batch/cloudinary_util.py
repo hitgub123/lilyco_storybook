@@ -4,8 +4,10 @@ import cloudinary, datetime
 import cloudinary.api
 import cloudinary.uploader
 from dotenv import load_dotenv
+from logger_config import get_logger
 
 load_dotenv()
+logger = get_logger(__name__)
 
 # --- 配置 ---
 # 从环境变量读取 Cloudinary 凭证 (这将由 GitHub Action 传入)
@@ -27,7 +29,9 @@ max_results = 1000
 
 def get_cloudinary_comic_count():
     """获取 Cloudinary comic 根目录下的所有文件名"""
-    print(f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表...")
+    logger.debug(
+        f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表..."
+    )
 
     resources = cloudinary.api.resources_by_asset_folder(
         "comic1", max_results=max_results
@@ -37,7 +41,9 @@ def get_cloudinary_comic_count():
 
 def get_cloudinary_comic_covers():
     """获取 Cloudinary comic 根目录下的所有文件名"""
-    print(f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表...")
+    logger.debug(
+        f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表..."
+    )
 
     resources = cloudinary.api.resources_by_asset_folder(
         "comic1", max_results=max_results
@@ -55,20 +61,20 @@ def get_cloudinary_comic_covers():
         # cover_files.add(filename)
         display_name = res.get("display_name")
         cover_files.add(display_name)
-    print(f"找到 {len(cover_files)} 个封面文件。")
+    logger.debug(f"找到 {len(cover_files)} 个封面文件。")
     return cover_files
 
 
 def group_local_files():
     """分组本地 notdone 文件夹中的图片"""
-    print(f"正在扫描本地文件夹: {NOTDONE_PATH}")
+    logger.debug(f"正在扫描本地文件夹: {NOTDONE_PATH}")
     local_files = glob.glob(os.path.join(NOTDONE_PATH, "*.*"))
     grouped = defaultdict(list)
     for f in local_files:
         # 从文件名 "a-b.jpg" 中提取 "a" 作为组名
         group_name = os.path.basename(f).split("-")[0]
         grouped[group_name].append(f)
-    print(f"找到 {len(grouped)} 个本地图片组。")
+    logger.debug(f"找到 {len(grouped)} 个本地图片组。")
     return grouped
 
 
@@ -77,7 +83,7 @@ def move_group_to_done(group_files):
     if not os.path.exists(DONE_PATH):
         os.makedirs(DONE_PATH)
     for f in group_files:
-        print(f"  移动文件: {os.path.basename(f)} -> {DONE_PATH}")
+        logger.debug(f"  移动文件: {os.path.basename(f)} -> {DONE_PATH}")
         shutil.move(f, os.path.join(DONE_PATH, os.path.basename(f)))
 
 
@@ -98,7 +104,7 @@ def main():
         cloudinary_covers = get_cloudinary_comic_covers()
 
     for group_name, files in local_groups.items():
-        print(f"\n--- 正在处理组: {group_name} ---")
+        logger.debug(f"\n--- 正在处理组: {group_name} ---")
 
         # 判断封面是否已存在于 Cloudinary
         # 检查是否有任何一个 Cloudinary 封面文件名是以 "group_name-" 开头的
@@ -108,17 +114,17 @@ def main():
             is_uploaded = group_name in cloudinary_covers
 
         if is_uploaded:
-            print(f"组 '{group_name}' 的封面已存在于 Cloudinary。跳过上传。")
+            logger.debug(f"组 '{group_name}' 的封面已存在于 Cloudinary。跳过上传。")
             move_group_to_done(files)
             continue
 
         # --- 如果不存在，执行上传逻辑 ---
-        print(f"组 '{group_name}' 不存在于 Cloudinary。开始上传...")
+        logger.debug(f"组 '{group_name}' 不存在于 Cloudinary。开始上传...")
 
         # 1. 上传封面 (组里的第一个文件) 到 comic1 根目录
         cover_file = sorted(files)[0]
         cover_filename = os.path.basename(cover_file)
-        print(f"  1. 上传封面 '{cover_filename}' 到 '{CLOUDINARY_ROOT_FOLDER}'")
+        logger.debug(f"  1. 上传封面 '{cover_filename}' 到 '{CLOUDINARY_ROOT_FOLDER}'")
         cloudinary.uploader.upload(
             cover_file,
             folder=CLOUDINARY_ROOT_FOLDER,
@@ -128,24 +134,24 @@ def main():
 
         # 2. 上传所有文件到 comic1/group_name 子文件夹
         subfolder = f"{CLOUDINARY_ROOT_FOLDER}/{group_name}"
-        print(f"  2. 上传 {len(files)} 个文件到子文件夹 '{subfolder}'")
+        logger.debug(f"  2. 上传 {len(files)} 个文件到子文件夹 '{subfolder}'")
         for f in files:
             filename = os.path.basename(f)
-            print(f"    - 上传 {filename}")
+            logger.debug(f"    - 上传 {filename}")
             cloudinary.uploader.upload(
                 f, folder=subfolder, public_id=os.path.splitext(filename)[0]
             )
 
         # 3. 更新 done.md
-        print(f"  3. 更新 '{DONE_MD_PATH}' 文件")
+        logger.debug(f"  3. 更新 '{DONE_MD_PATH}' 文件")
         with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
             md_file.write(f"{group_name},")
 
         # 4. 移动本地文件
-        print("  4. 移动本地文件到完成目录")
+        logger.debug("  4. 移动本地文件到完成目录")
         move_group_to_done(files)
 
-        print(f"--- 组 '{group_name}' 处理完成 ---")
+        logger.debug(f"--- 组 '{group_name}' 处理完成 ---")
 
 
 if __name__ == "__main__":

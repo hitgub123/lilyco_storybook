@@ -1,6 +1,9 @@
 import pandas as pd
 import os
-import cloudinary_util, generate_storybooks,generate_stories
+from logger_config import get_logger
+import cloudinary_util, generate_storybooks, generate_stories
+
+logger = get_logger(__name__)
 
 
 class Task_manager:
@@ -26,7 +29,7 @@ class Task_manager:
                 if not df_existing.empty:
                     start_id = df_existing["id"].max()
             except pd.errors.EmptyDataError:
-                print(f"'{self.CSV_PATH}' 文件为空，将从头开始写入。")
+                logger.debug(f"'{self.CSV_PATH}' 文件为空，将从头开始写入。")
                 df_existing = pd.DataFrame()
         else:
             df_existing = pd.DataFrame()
@@ -44,7 +47,7 @@ class Task_manager:
             )
 
         if not new_data:
-            print("没有需要添加的新任务。")
+            logger.warning("没有需要添加的新任务。")
             return
 
         # 将新数据转换为 DataFrame
@@ -77,7 +80,7 @@ class Task_manager:
                 index=False,
                 encoding=self.encoding,
             )
-            print("修改成功。")
+            logger.debug("修改成功。")
 
 
 # --- 主程序入口 ---

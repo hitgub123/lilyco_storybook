@@ -3,3 +3,4 @@ asset/pic/*
 .env
 *.pyc
 .vscode/**
+log/**

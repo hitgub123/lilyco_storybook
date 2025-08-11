@@ -1,9 +1,12 @@
-'''
+"""
 这个模块包含使用LLM（大型语言模型）生成内容的工具函数。
-'''
+"""
 
 import json
 from typing import List, Callable
+from logger_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class MockLLM:
@@ -15,11 +18,10 @@ class MockLLM:
 
     def _generate_response(self, prompt: str, method_name: str) -> str:
         """内部方法，用于生成标准响应。"""
-        print(f"--- Mock LLM 通过 {method_name} 方法接收到的提示 ---")
-        print(prompt)
-        print("-------------------------------------------------")
+        logger.debug(f"--- Mock LLM 通过 {method_name} 方法接收到的提示 ---")
+        logger.debug(prompt)
         # 模拟LLM根据提示返回的JSON数据
-        return '''
+        return """
         {
             "stories": [
                 "勇敢的小猫米奇，第一次爬上了高高的书架探险。",
@@ -27,7 +29,7 @@ class MockLLM:
                 "夜里，小猫汤姆悄悄溜进厨房，偷吃了盘里的鱼干。"
             ]
         }
-        '''
+        """
 
     def complete(self, prompt: str) -> str:
         """模拟名为 'complete' 的LLM生成方法。"""
@@ -80,14 +82,16 @@ def generate_stories_by_generation_func(
         if isinstance(stories, list) and all(isinstance(s, str) for s in stories):
             return stories
         else:
-            print("错误：LLM返回的JSON中'stories'键的值不是一个字符串列表。")
+            logger.error("错误：LLM返回的JSON中'stories'键的值不是一个字符串列表。")
             return []
 
     except json.JSONDecodeError:
-        print(f"错误：无法解析LLM返回的文本为JSON。收到的文本: \n{response_text}")
+        logger.error(
+            f"错误：无法解析LLM返回的文本为JSON。收到的文本: \n{response_text}"
+        )
         return []
     except Exception as e:
-        print(f"在与LLM交互或处理数据时发生未知错误: {e}")
+        logger.error(f"在与LLM交互或处理数据时发生未知错误: {e}")
         return []
 
 
@@ -101,8 +105,8 @@ if __name__ == "__main__":
     number_of_stories = 3
 
     # 3. 调用函数生成故事，演示传入 complete 方法
-    print(f"--- 演示1: 使用 mock_llm_client.complete 方法 ---")
-    print(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
+    logger.debug(f"--- 演示1: 使用 mock_llm_client.complete 方法 ---")
+    logger.debug(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
     generated_stories_1 = generate_stories_by_generation_func(
         topic=story_topic,
         count=number_of_stories,
@@ -111,17 +115,17 @@ if __name__ == "__main__":
 
     # 4. 打印结果
     if generated_stories_1:
-        print("\n--- 成功生成的故事列表 (来自complete) ---")
+        logger.debug("\n--- 成功生成的故事列表 (来自complete) ---")
         for i, story in enumerate(generated_stories_1, 1):
-            print(f"{i}. {story}")
+            logger.debug(f"{i}. {story}")
     else:
-        print("\n--- 未能生成故事 (来自complete) ---")
+        logger.error("\n--- 未能生成故事 (来自complete) ---")
 
-    print("\n" + "=" * 50 + "\n")
+    logger.debug("\n" + "=" * 50 + "\n")
 
     # 5. 再次调用函数，演示传入 invoke 方法
-    print(f"--- 演示2: 使用 mock_llm_client.invoke 方法 ---")
-    print(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
+    logger.debug(f"--- 演示2: 使用 mock_llm_client.invoke 方法 ---")
+    logger.debug(f"正在为主题 '{story_topic}' 生成 {number_of_stories} 个小故事...")
     generated_stories_2 = generate_stories_by_generation_func(
         topic=story_topic,
         count=number_of_stories,
@@ -130,8 +134,8 @@ if __name__ == "__main__":
 
     # 6. 打印结果
     if generated_stories_2:
-        print("\n--- 成功生成的故事列表 (来自invoke) ---")
+        logger.debug("\n--- 成功生成的故事列表 (来自invoke) ---")
         for i, story in enumerate(generated_stories_2, 1):
-            print(f"{i}. {story}")
+            logger.debug(f"{i}. {story}")
     else:
-        print("\n--- 未能生成故事 (来自invoke) ---")
+        logger.error("\n--- 未能生成故事 (来自invoke) ---")
