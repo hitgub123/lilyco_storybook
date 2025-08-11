@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-import cloudinary_util, generate_storybook
+import cloudinary_util, generate_storybooks,generate_stories
 
 
 class Task_manager:

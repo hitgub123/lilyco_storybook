@@ -1,6 +1,6 @@
 import shutil, os, glob
 from collections import defaultdict
-import cloudinary
+import cloudinary, datetime
 import cloudinary.api
 import cloudinary.uploader
 from dotenv import load_dotenv
@@ -18,10 +18,12 @@ cloudinary.config(
 # 本地文件路径 (相对于项目根目录)
 NOTDONE_PATH = "asset/pic/not_done"
 DONE_PATH = "asset/pic/done"
-DONE_MD_PATH = "asset/done.md"
+DONE_MD_PATH = "asset/cloudonary_done.md"
+DONE_MD_PREFIX = "[TIME]"
 CLOUDINARY_ROOT_FOLDER = os.getenv("CLOUDINARY_FOLDER")
 
 max_results = 1000
+
 
 def get_cloudinary_comic_count():
     """获取 Cloudinary comic 根目录下的所有文件名"""
@@ -32,6 +34,7 @@ def get_cloudinary_comic_count():
     )
     return len(resources.get("resources", []))
 
+
 def get_cloudinary_comic_covers():
     """获取 Cloudinary comic 根目录下的所有文件名"""
     print(f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表...")
@@ -39,7 +42,7 @@ def get_cloudinary_comic_covers():
     resources = cloudinary.api.resources_by_asset_folder(
         "comic1", max_results=max_results
     )
-    
+
     # 我们只关心在 comic1 根目录下的文件, 形如 "comic1/a-1.jpg"
     # 排除子文件夹里的文件, 形如 "comic1/a/a-1.jpg"
     cover_files = set()
@@ -79,14 +82,20 @@ def move_group_to_done(group_files):
 
 
 def main():
-    only_count=True
-    cloudinary_comic_count,cloudinary_covers=0,[]
+    only_count = True
+    cloudinary_comic_count, cloudinary_covers = 0, []
+    local_groups = group_local_files()
+
+    with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
+        md_file.write(f"{DONE_MD_PREFIX}{datetime.datetime.now()}\n")
+
+    if not len(local_groups):
+        return
+
     if only_count:
         cloudinary_comic_count = get_cloudinary_comic_count()
     else:
         cloudinary_covers = get_cloudinary_comic_covers()
-
-    local_groups = group_local_files()
 
     for group_name, files in local_groups.items():
         print(f"\n--- 正在处理组: {group_name} ---")
@@ -130,7 +139,7 @@ def main():
         # 3. 更新 done.md
         print(f"  3. 更新 '{DONE_MD_PATH}' 文件")
         with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
-            md_file.write(f"- {group_name}\n")
+            md_file.write(f"{group_name},")
 
         # 4. 移动本地文件
         print("  4. 移动本地文件到完成目录")
