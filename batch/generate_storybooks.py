@@ -53,7 +53,9 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         # 等待元素可见
         expect(input_box).to_be_visible(timeout=60)
 
-        prompt = f"不要让我补充内容，按我给的上下文和你自己的想法，为这个故事生成绘本:{prompt}"
+        prompt = f"""不要让我补充内容，按我给的上下文和你自己的想法，为这个故事生成绘本:
+        {prompt}
+        """
         input_box.fill(prompt)
 
         time.sleep(1)
@@ -144,6 +146,7 @@ if __name__ == "__main__":
     tasks = tm.read_df_from_csv()
     # target_task = tasks.loc[tasks["is_target"] == 1]
     target_task = tasks.query('is_target == 1 and generate_storybook != 1')
+    print('target_task',target_task)
     # text_lst=target_task['text'].tolist()
 
     # --- 运行主程序 ---

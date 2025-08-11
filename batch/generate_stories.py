@@ -84,6 +84,7 @@ def generate_stories_by_generation_func(
 主题：'{topic}'
 对象应该包含一个名为 "stories" 的键，其值是一个包含 {number_of_stories} 个字符串的数组。
 每个字符串都应该是一个关于主题的、长度在{word_count}个字左右的独立小故事。
+每个小故事里不要用任何代词，比如[小明是学生。他成绩很好]要改成[小明是学生。小明成绩很好]。
 请确保您的回答是严格的JSON格式，不要包含任何额外的解释或注释。"""
 
     response_text = ""
