@@ -1,3 +1,17 @@
+# for folder web
+## only build new file by using cache static file @seeing [[...slug]].tsx
+`	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"build-backup": "shx cp -r out/p/* out-1/p || true",
+		"post-build": "shx cp -r out-1/p out",
+		"my-build": "npm run build && npm run build-backup && npm run post-build"
+	}, `
+
+# for folder batch
+
 ## how to use generate_storybook.py
 
 ### 首先，完全关闭所有正在运行的 Edge 浏览器窗口。
