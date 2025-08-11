@@ -68,23 +68,35 @@ def get_cloudinary_comic_covers():
 def group_local_files():
     """分组本地 notdone 文件夹中的图片"""
     logger.debug(f"正在扫描本地文件夹: {NOTDONE_PATH}")
-    local_files = glob.glob(os.path.join(NOTDONE_PATH, "*.*"))
-    grouped = defaultdict(list)
-    for f in local_files:
-        # 从文件名 "a-b.jpg" 中提取 "a" 作为组名
-        group_name = os.path.basename(f).split("-")[0]
-        grouped[group_name].append(f)
+    local_folds = glob.glob(os.path.join(NOTDONE_PATH, "*"))
+    grouped = {}
+    for f in local_folds:
+        local_files = glob.glob(os.path.join(f, "*"))
+        # group_name = os.path.basename(f)
+        # grouped[group_name] = local_files
+        grouped[f] = local_files
     logger.debug(f"找到 {len(grouped)} 个本地图片组。")
     return grouped
 
 
-def move_group_to_done(group_files):
+def move_group_folder_to_done(group_name_full, group_name):
+    """将一组文件的文件夹移动到 done 文件夹"""
+    if not os.path.exists(DONE_PATH):
+        os.makedirs(DONE_PATH)
+    logger.debug(f"  移动文件夹: {group_name_full} -> {DONE_PATH}")
+    shutil.move(group_name_full, DONE_PATH)
+
+
+def move_group_to_done(group_files, group_name):
     """将一组文件移动到 done 文件夹"""
     if not os.path.exists(DONE_PATH):
         os.makedirs(DONE_PATH)
+    target_fold = os.path.join(DONE_PATH, group_name)
+    if not os.path.exists(target_fold):
+        os.makedirs(target_fold)
     for f in group_files:
-        logger.debug(f"  移动文件: {os.path.basename(f)} -> {DONE_PATH}")
-        shutil.move(f, os.path.join(DONE_PATH, os.path.basename(f)))
+        logger.debug(f"  移动文件: {os.path.basename(f)} -> {target_fold}")
+        shutil.move(f, os.path.join(target_fold, os.path.basename(f)))
 
 
 def main():
@@ -93,29 +105,30 @@ def main():
     local_groups = group_local_files()
 
     with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
-        md_file.write(f"{DONE_MD_PREFIX}{datetime.datetime.now()}\n")
+        md_file.write(f"\n{DONE_MD_PREFIX}{datetime.datetime.now()}\n")
 
     if not len(local_groups):
         return
 
     if only_count:
-        cloudinary_comic_count = get_cloudinary_comic_count()
+        # cloudinary_comic_count = get_cloudinary_comic_count()
+        cloudinary_comic_count = 0
     else:
         cloudinary_covers = get_cloudinary_comic_covers()
 
-    for group_name, files in local_groups.items():
+    for group_name_full, files in local_groups.items():
+        group_name = os.path.basename(group_name_full)
         logger.debug(f"\n--- 正在处理组: {group_name} ---")
 
         # 判断封面是否已存在于 Cloudinary
-        # 检查是否有任何一个 Cloudinary 封面文件名是以 "group_name-" 开头的
         if only_count:
-            is_uploaded = group_name > cloudinary_comic_count
+            is_uploaded = int(group_name) <= cloudinary_comic_count
         else:
             is_uploaded = group_name in cloudinary_covers
 
-        if is_uploaded:
+        if is_uploaded or not len(files):
             logger.debug(f"组 '{group_name}' 的封面已存在于 Cloudinary。跳过上传。")
-            move_group_to_done(files)
+            # move_group_to_done(files,group_name)
             continue
 
         # --- 如果不存在，执行上传逻辑 ---
@@ -142,14 +155,14 @@ def main():
                 f, folder=subfolder, public_id=os.path.splitext(filename)[0]
             )
 
-        # 3. 更新 done.md
+        # 3. 移动本地文件
+        logger.debug("  4. 移动本地文件到完成目录")
+        move_group_folder_to_done(group_name_full, group_name)
+
+        # 4. 更新 done.md
         logger.debug(f"  3. 更新 '{DONE_MD_PATH}' 文件")
         with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
             md_file.write(f"{group_name},")
-
-        # 4. 移动本地文件
-        logger.debug("  4. 移动本地文件到完成目录")
-        move_group_to_done(files)
 
         logger.debug(f"--- 组 '{group_name}' 处理完成 ---")
 
@@ -157,25 +170,33 @@ def main():
 if __name__ == "__main__":
     main()
     with open(DONE_MD_PATH, "r", encoding="utf-8") as f:
-        lines=f.readlines()[-2:]
-        line=lines[-1].replace('\n','')
+        lines = f.readlines()[-2:]
+        line = lines[-1].replace("\n", "")
         if not line:
-            line=lines[-2].replace('\n','')
+            line = lines[-2].replace("\n", "")
         if not line.startswith(DONE_MD_PREFIX):
+            if line[-1] == ",":
+                line = line[:-1]
+
             uploaded_list = line.split(",")
             uploaded_list = [int(i) for i in uploaded_list]
             from task_manager import Task_manager
+
             tm = Task_manager()
             tasks = tm.read_df_from_csv()
             uncomplete_task = tasks.query(
                 "is_target == 1 and generate_storybook==1 and upload_storybook != 1"
             )
-            uncomplete_set=uncomplete_task.id.to_set()
+            uncomplete_set = set(uncomplete_task.id)
             uploaded_set = set(uploaded_list)
-            logger.info(f'未上传的task id是{uncomplete_set}，\n本次上传成功{uploaded_set}')
+            logger.info(
+                f"未上传的task id是{uncomplete_set}，本次上传成功{uploaded_set}"
+            )
             if not uploaded_set.issubset(uncomplete_set):
-                logger.warning(f'本次上传成功的{uploaded_list-uncomplete_set}状态可能不对，请确认')
-            target_index=tasks["id"].isin(uploaded_list)
+                logger.warning(
+                    f"本次上传成功的数据状态可能不对，请确认"
+                )
+            target_index = tasks["id"].isin(uploaded_list)
             tasks.loc[target_index, "upload_storybook"] = 1
             # tasks.loc[target_index, "is_target"] = 1
 

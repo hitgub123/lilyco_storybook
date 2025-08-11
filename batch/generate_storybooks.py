@@ -7,6 +7,7 @@ import random
 WAIT_TIME = 30 * 1000
 load_dotenv()
 NOTDONE_PATH = os.getenv("NOTDONE_PATH")
+SCREENSHOT_QUALITY = os.getenv("SCREENSHOT_QUALITY")
 logger = get_logger(__name__)
 
 
@@ -80,7 +81,9 @@ def crawl_new_tab(context, href_storybook, id):
             screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
         expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
 
-        storybook_content.screenshot(path=screenshot_path, type="jpeg", quality=90)
+        storybook_content.screenshot(
+            path=screenshot_path, type="jpeg", quality=SCREENSHOT_QUALITY
+        )
         logger.debug(f"操作成功！截图{screenshot_path}已保存。")
         current_page += 1
         if next_page_button.is_disabled():
