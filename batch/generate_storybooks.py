@@ -3,6 +3,7 @@ import time,os
 from logger_config import get_logger
 
 WAIT_TIME = 30 * 1000
+NOTDONE_PATH = os.getenv("NOTDONE_PATH")
 logger = get_logger(__name__)
 
 
@@ -97,19 +98,22 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         )
         expect(next_page_button).to_be_visible(timeout=WAIT_TIME)
 
-        output_dir = f"asset/pic/not_done/{id}"
-        os.makedirs(output_dir, exist_ok=True)
+        
+        # cover_dir = os.path.join('cover', 'id')
+        comic_dir = os.path.join(NOTDONE_PATH, 'id')
+        # comic_dir = f"asset/pic/not_done/{id}"
+        os.makedirs(comic_dir, exist_ok=True)
 
         current_page = 1
         while 1:
             if current_page == 1:
                 storybook_content = new_tab.locator("storybook-page[class='right']")
+                screenshot_path = os.path.join(comic_dir, f"{current_page}.jpg")
             else:
                 storybook_content = new_tab.locator("storybook")
+                screenshot_path = os.path.join(comic_dir, f"{current_page}.jpg")
             expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
 
-            screenshot_path = os.path.join(output_dir, f"{current_page}.jpg")
-            # screenshot_path = f"asset/pic/not_done/{id}/{id}-{current_page}.jpg"
             storybook_content.screenshot(path=screenshot_path)
             logger.debug(f"操作成功！截图{screenshot_path}已保存。")
             current_page += 1
@@ -138,7 +142,8 @@ if __name__ == "__main__":
 
     tm = Task_manager()
     tasks = tm.read_df_from_csv()
-    target_task = tasks.loc[tasks["is_target"] == 1]
+    # target_task = tasks.loc[tasks["is_target"] == 1]
+    target_task = tasks.query('is_target == 1 and generate_storybook != 1')
     # text_lst=target_task['text'].tolist()
 
     # --- 运行主程序 ---
@@ -151,3 +156,4 @@ if __name__ == "__main__":
             res = run(prompt,id, browser, context, target_page)
             if res:
                 tasks.loc[id, "generate_storybook"] = 1
+        tm.update_task(tasks)

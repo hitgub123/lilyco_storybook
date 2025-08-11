@@ -79,21 +79,28 @@ class Task_manager:
         )
 
     def update_task(self, df: pd.DataFrame):
-        df_total = self.read_df_from_csv()
+        # df_total = self.read_df_from_csv()
 
-        if not df_total.empty:
-            # 使用 .loc[行索引, 列名] 来定位并修改数据
-            df_total.loc[0, self.CSV_COLUMNS[2]] = -1
+        # if not df_total.empty:
+        #     # 使用 .loc[行索引, 列名] 来定位并修改数据
+        #     df_total.loc[0, self.CSV_COLUMNS[2]] = -1
 
-            # 将修改后的整个 DataFrame 写回文件，这次是覆盖模式
-            df_total.to_csv(
+        #     # 将修改后的整个 DataFrame 写回文件，这次是覆盖模式
+        #     df_total.to_csv(
+        #         self.CSV_PATH,
+        #         mode="w",
+        #         header=True,
+        #         index=False,
+        #         encoding=self.encoding,
+        #     )
+        df.to_csv(
                 self.CSV_PATH,
                 mode="w",
                 header=True,
                 index=False,
                 encoding=self.encoding,
-            )
-            logger.debug("修改成功。")
+            )        
+        logger.debug("修改成功。")
 
 
 # --- 主程序入口 ---

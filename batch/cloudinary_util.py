@@ -18,9 +18,9 @@ cloudinary.config(
 )
 
 # 本地文件路径 (相对于项目根目录)
-NOTDONE_PATH = "asset/pic/not_done"
-DONE_PATH = "asset/pic/done"
-DONE_MD_PATH = "asset/cloudonary_done.md"
+NOTDONE_PATH = os.getenv("NOTDONE_PATH")
+DONE_PATH = os.getenv("DONE_PATH")
+DONE_MD_PATH = os.getenv("DONE_MD_PATH")
 DONE_MD_PREFIX = "[TIME]"
 CLOUDINARY_ROOT_FOLDER = os.getenv("CLOUDINARY_FOLDER")
 
@@ -135,7 +135,7 @@ def main():
         # 2. 上传所有文件到 comic1/group_name 子文件夹
         subfolder = f"{CLOUDINARY_ROOT_FOLDER}/{group_name}"
         logger.debug(f"  2. 上传 {len(files)} 个文件到子文件夹 '{subfolder}'")
-        for f in files:
+        for f in files[1:]:
             filename = os.path.basename(f)
             logger.debug(f"    - 上传 {filename}")
             cloudinary.uploader.upload(
