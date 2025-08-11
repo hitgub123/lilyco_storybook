@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright, Playwright, expect
-import time
+import time,os
 from logger_config import get_logger
 
 WAIT_TIME = 30 * 1000
@@ -37,7 +37,7 @@ def get_browser(playwright: Playwright):
         )
         browser.close()
         raise Exception(f"not found target page {TARGET_URL_PART}")
-    logger.debug(f"连接成功！当前页面是: {page.title()}")
+    logger.debug(f"连接成功！当前页面是: {target_page.title()}")
     return browser, context, target_page
 
 
@@ -62,6 +62,7 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         share_button = target_page.locator("share-button")
 
         logger.debug("正在等待share_button元素加载...")
+        target_page.wait_for_load_state("networkidle", timeout=WAIT_TIME*6)
         # expect 会在这里暂停脚本，直到元素可见，或者超时（默认30秒）
         # expect(share_button).to_be_visible(timeout=180 * 1000)
         expect(share_button).to_be_enabled(timeout=180 * 1000)
@@ -72,6 +73,7 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         button.click()
 
         copy_link = target_page.locator('a[data-test-id="created-share-link"]')
+        target_page.wait_for_load_state("networkidle", timeout=WAIT_TIME)
         expect(copy_link).to_be_visible(timeout=WAIT_TIME)
         href_storybook = copy_link.get_attribute("href")
 
@@ -95,6 +97,9 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         )
         expect(next_page_button).to_be_visible(timeout=WAIT_TIME)
 
+        output_dir = f"asset/pic/not_done/{id}"
+        os.makedirs(output_dir, exist_ok=True)
+
         current_page = 1
         while 1:
             if current_page == 1:
@@ -102,14 +107,20 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
             else:
                 storybook_content = new_tab.locator("storybook")
             expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
-            screenshot_path = f"asset/pic/not_done/{id}-{current_page}.jpg"
+
+            screenshot_path = os.path.join(output_dir, f"{current_page}.jpg")
+            # screenshot_path = f"asset/pic/not_done/{id}/{id}-{current_page}.jpg"
             storybook_content.screenshot(path=screenshot_path)
             logger.debug(f"操作成功！截图{screenshot_path}已保存。")
             current_page += 1
             if next_page_button.is_disabled():
                 break
             next_page_button.click()
-            time.sleep(3)
+
+            # 替换 time.sleep(3) 为更可靠的网络等待
+            # 这能确保图片等动态内容加载完成后再继续执行
+            logger.debug("等待页面网络活动完成...")
+            new_tab.wait_for_load_state('networkidle', timeout=WAIT_TIME)
         new_tab.close()
         return True
 
