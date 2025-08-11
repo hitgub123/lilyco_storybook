@@ -7,7 +7,7 @@ import random
 WAIT_TIME = 30 * 1000
 load_dotenv()
 NOTDONE_PATH = os.getenv("NOTDONE_PATH")
-SCREENSHOT_QUALITY = os.getenv("SCREENSHOT_QUALITY")
+SCREENSHOT_QUALITY = int(os.getenv("SCREENSHOT_QUALITY"))
 logger = get_logger(__name__)
 
 
@@ -52,6 +52,7 @@ def get_browser(playwright: Playwright):
 
 
 def crawl_new_tab(context, href_storybook, id):
+    logger.debug(f"开始访问会本页面,href={href_storybook},id={id}")
     id = str(id)
     new_tab = context.new_page()
     new_tab.goto(href_storybook)
@@ -71,16 +72,32 @@ def crawl_new_tab(context, href_storybook, id):
     while 1:
         # 这能确保图片等动态内容加载完成后再继续执行,not work here
         # new_tab.wait_for_load_state('networkidle', timeout=WAIT_TIME)
+
+        # 1:{1},2:{2,3},3:{4,5},
         if current_page == 1:
             sleep_random(20)
-            storybook_content = new_tab.locator("storybook-page[class='right']")
-            screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
         else:
             sleep_random(4)
-            storybook_content = new_tab.locator("storybook")
-            screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
-        expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
+            storybook_content = new_tab.locator("storybook-page[class='left']").nth(-1)
+            screenshot_path = os.path.join(comic_dir, f"{id}-{current_page*2-2}.jpg")
+            storybook_content.screenshot(
+                path=screenshot_path, type="jpeg", quality=SCREENSHOT_QUALITY
+            )
 
+        # if current_page == 1:
+        #     sleep_random(20)
+        #     storybook_content = new_tab.locator("storybook-page[class='right']")
+        #     screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
+        # else:
+        #     sleep_random(4)
+        #     storybook_content = new_tab.locator("storybook")
+        #     screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
+        # expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
+        # expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
+
+        time.sleep(1)
+        storybook_content = new_tab.locator("storybook-page[class='right']").nth(-1)
+        screenshot_path = os.path.join(comic_dir, f"{id}-{current_page*2-1}.jpg")
         storybook_content.screenshot(
             path=screenshot_path, type="jpeg", quality=SCREENSHOT_QUALITY
         )
@@ -113,7 +130,7 @@ def run(prompt, id=1, browser=None, context=None, target_page=None):
         for i in range(10):
             input_box.clear()
 
-        prompt = f"不要让我补充内容，按我给的上下文和你自己的想法，为这个故事生成绘本:\n{prompt}"
+        prompt = f"不要让我补充内容，按我给的提示词和你自己的想法，为这个故事生成绘本:\n{prompt}"
         input_box.fill(prompt)
 
         time.sleep(3)
@@ -168,7 +185,7 @@ if __name__ == "__main__":
     with sync_playwright() as playwright:
         browser, context, target_page = get_browser(playwright)
         if run_crawl_new_tab:
-            href_storybook = "https://gemini.google.com/share/934b9a8750ae"
+            href_storybook = "https://gemini.google.com/share/51df2cd2bab9"
             id = input("input your comic id\n")
             crawl_new_tab(context, href_storybook, id)
         else:
@@ -186,4 +203,6 @@ if __name__ == "__main__":
                 if res:
                     # tasks.loc[id, "generate_storybook"] = 1
                     tasks.loc[tasks["id"] == id, "generate_storybook"] = 1
-            tm.update_task(tasks)
+                    tm.update_task(tasks)
+                else:
+                    logger.error('生成绘本失败')

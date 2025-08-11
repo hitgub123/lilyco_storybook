@@ -9,12 +9,14 @@ import cloudinary from '../../utils/cloudinary';
 import getBase64ImageUrl from '../../utils/generateBlurPlaceholder';
 import type { ImageProps } from '../../utils/types';
 import { useLastViewedPhoto } from '../../utils/useLastViewedPhoto';
+import fs from 'fs/promises'; // 导入 Node.js 文件系统模块
+import path from 'path'; // 导入 Node.js 路径模块
 const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
 	// console.log('slug', slug);
-	console.log('images', images);
+	// console.log('images', images);
 
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
@@ -142,13 +144,37 @@ export async function getStaticProps(context: any) {
 }
 
 export async function getStaticPaths() {
-	let fullPaths = [];
+	const BUILD_CACHE_DIR = path.join(process.cwd(), 'out-1', 'p');
+	console.log('BUILD_CACHE_DIR', BUILD_CACHE_DIR);
+	let existingSlugs = new Set(); // 使用 Set 存储已存在的 slug，方便快速查找
 
+	// 尝试读取缓存目录中的文件
+	const files = await fs.readdir(BUILD_CACHE_DIR);
+	for (const file of files) {
+		// 检查文件是否是 HTML 文件
+		if (file.endsWith('.html')) {
+			// 从文件名中提取 slug (例如 '1.html' -> '1')
+			const slug = path.basename(file, '.html');
+			existingSlugs.add(slug);
+		}
+	}
+	// console.log('files', files);
+	console.log('existingSlugs', existingSlugs);
+	let fullPaths = [];
+	
 	const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
 	const folders = results.folders;
-	for (let i = 0; i < folders.length; i++) {
-		fullPaths.push({ params: { slug: [folders[i].name] } });
+	// console.log('folders', folders);
+	for(let i = 0; i < folders.length; i++) {
+		let name = folders[i].name;
+		if (!existingSlugs.has(name)) {
+			fullPaths.push({ params: { slug: [name] } });
+		}
 	}
+	for(let i = 0; i < fullPaths.length; i++) {
+		console.log(`fullPaths[${i}}=`, fullPaths[i]);
+	}
+
 	return {
 		paths: fullPaths,
 		fallback: false,
