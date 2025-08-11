@@ -1,10 +1,18 @@
 from playwright.sync_api import sync_playwright, Playwright, expect
-import time,os
+import time, os
 from logger_config import get_logger
+from dotenv import load_dotenv
+import random
 
 WAIT_TIME = 30 * 1000
+load_dotenv()
 NOTDONE_PATH = os.getenv("NOTDONE_PATH")
 logger = get_logger(__name__)
+
+
+def sleep_random(sleep_time=10, bias=1):
+    r_sleep_time = random.randint(sleep_time - bias, sleep_time + bias)
+    time.sleep(r_sleep_time)
 
 
 def get_browser(playwright: Playwright):
@@ -42,7 +50,47 @@ def get_browser(playwright: Playwright):
     return browser, context, target_page
 
 
-def run(prompt, id=1,browser=None, context=None, target_page=None):
+def crawl_new_tab(context, href_storybook, id):
+    id = str(id)
+    new_tab = context.new_page()
+    new_tab.goto(href_storybook)
+    new_tab.bring_to_front()
+
+    next_page_button = new_tab.locator(
+        "button[aria-label='Next page'][data-test-id='next-page-button']"
+    )
+    expect(next_page_button).to_be_visible(timeout=WAIT_TIME)
+
+    # cover_dir = os.path.join('cover', id)
+    comic_dir = os.path.join(NOTDONE_PATH, id)
+    # comic_dir = f"asset/pic/not_done/{id}"
+    os.makedirs(comic_dir, exist_ok=True)
+
+    current_page = 1
+    while 1:
+        # 这能确保图片等动态内容加载完成后再继续执行,not work here
+        # new_tab.wait_for_load_state('networkidle', timeout=WAIT_TIME)
+        if current_page == 1:
+            sleep_random(20)
+            storybook_content = new_tab.locator("storybook-page[class='right']")
+            screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
+        else:
+            sleep_random(4)
+            storybook_content = new_tab.locator("storybook")
+            screenshot_path = os.path.join(comic_dir, f"{id}-{current_page}.jpg")
+        expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
+
+        storybook_content.screenshot(path=screenshot_path, type="jpeg", quality=90)
+        logger.debug(f"操作成功！截图{screenshot_path}已保存。")
+        current_page += 1
+        if next_page_button.is_disabled():
+            break
+        next_page_button.click()
+    new_tab.close()
+    return True
+
+
+def run(prompt, id=1, browser=None, context=None, target_page=None):
     if not browser or not context or not target_page:
         browser, context, target_page = get_browser(playwright)
 
@@ -53,22 +101,31 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         # 等待元素可见
         expect(input_box).to_be_visible(timeout=60)
 
-        prompt = f"""不要让我补充内容，按我给的上下文和你自己的想法，为这个故事生成绘本:
-        {prompt}
-        """
+        # while 1:
+        #     text_=input_box.inner_text()
+        #     match_res=re.match(r'^\s+$',text_)
+        #     if not text_ or not match_res:
+        #         break
+        #     input_box.clear()
+        for i in range(10):
+            input_box.clear()
+
+        prompt = f"不要让我补充内容，按我给的上下文和你自己的想法，为这个故事生成绘本:\n{prompt}"
         input_box.fill(prompt)
 
-        time.sleep(1)
+        time.sleep(3)
         target_page.keyboard.press("Control+Enter")
 
         # result_locator = target_page.locator("storybook")
         share_button = target_page.locator("share-button")
 
         logger.debug("正在等待share_button元素加载...")
-        target_page.wait_for_load_state("networkidle", timeout=WAIT_TIME*6)
+        # networkidle not work here ,to_be_enabled also not work
+        # target_page.wait_for_load_state("networkidle", timeout=WAIT_TIME*6)
         # expect 会在这里暂停脚本，直到元素可见，或者超时（默认30秒）
-        # expect(share_button).to_be_visible(timeout=180 * 1000)
-        expect(share_button).to_be_enabled(timeout=180 * 1000)
+        expect(share_button).to_be_visible(timeout=180 * 1000)
+        # expect(share_button).to_be_enabled(timeout=180 * 1000)
+        sleep_random(15)
         share_button.click()
 
         button = share_button.locator("button").nth(1)
@@ -76,7 +133,7 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         button.click()
 
         copy_link = target_page.locator('a[data-test-id="created-share-link"]')
-        target_page.wait_for_load_state("networkidle", timeout=WAIT_TIME)
+        # target_page.wait_for_load_state("networkidle", timeout=WAIT_TIME)
         expect(copy_link).to_be_visible(timeout=WAIT_TIME)
         href_storybook = copy_link.get_attribute("href")
 
@@ -91,44 +148,7 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
         expect(close_panel_button).to_be_visible(timeout=WAIT_TIME)
         close_panel_button.click()
 
-        new_tab = context.new_page()
-        new_tab.goto(href_storybook)
-        new_tab.bring_to_front()
-
-        next_page_button = new_tab.locator(
-            "button[aria-label='Next page'][data-test-id='next-page-button']"
-        )
-        expect(next_page_button).to_be_visible(timeout=WAIT_TIME)
-
-        
-        # cover_dir = os.path.join('cover', 'id')
-        comic_dir = os.path.join(NOTDONE_PATH, 'id')
-        # comic_dir = f"asset/pic/not_done/{id}"
-        os.makedirs(comic_dir, exist_ok=True)
-
-        current_page = 1
-        while 1:
-            if current_page == 1:
-                storybook_content = new_tab.locator("storybook-page[class='right']")
-                screenshot_path = os.path.join(comic_dir, f"{current_page}.jpg")
-            else:
-                storybook_content = new_tab.locator("storybook")
-                screenshot_path = os.path.join(comic_dir, f"{current_page}.jpg")
-            expect(storybook_content).to_be_visible(timeout=WAIT_TIME)
-
-            storybook_content.screenshot(path=screenshot_path)
-            logger.debug(f"操作成功！截图{screenshot_path}已保存。")
-            current_page += 1
-            if next_page_button.is_disabled():
-                break
-            next_page_button.click()
-
-            # 替换 time.sleep(3) 为更可靠的网络等待
-            # 这能确保图片等动态内容加载完成后再继续执行
-            logger.debug("等待页面网络活动完成...")
-            new_tab.wait_for_load_state('networkidle', timeout=WAIT_TIME)
-        new_tab.close()
-        return True
+        return crawl_new_tab(context, href_storybook, id)
 
     except Exception as e:
         logger.error(f"发生错误: {e}")
@@ -140,23 +160,27 @@ def run(prompt, id=1,browser=None, context=None, target_page=None):
 
 
 if __name__ == "__main__":
-    from task_manager import Task_manager
-
-    tm = Task_manager()
-    tasks = tm.read_df_from_csv()
-    # target_task = tasks.loc[tasks["is_target"] == 1]
-    target_task = tasks.query('is_target == 1 and generate_storybook != 1')
-    print('target_task',target_task)
-    # text_lst=target_task['text'].tolist()
-
+    run_crawl_new_tab = 0
     # --- 运行主程序 ---
     with sync_playwright() as playwright:
         browser, context, target_page = get_browser(playwright)
-        for _,task in target_task.iterrows():
-            # prompt = "兔子托比在林间小溪上漂流,它沿途看到了很多鱼，它和其中一只叫波利的安康鱼做了朋友"
-            prompt = task["text"]
-            id = task["id"]
-            res = run(prompt,id, browser, context, target_page)
-            if res:
-                tasks.loc[id, "generate_storybook"] = 1
-        tm.update_task(tasks)
+        if run_crawl_new_tab:
+            href_storybook = "https://gemini.google.com/share/934b9a8750ae"
+            id = input("input your comic id\n")
+            crawl_new_tab(context, href_storybook, id)
+        else:
+            from task_manager import Task_manager
+
+            tm = Task_manager()
+            tasks = tm.read_df_from_csv()
+            target_task = tasks.query("is_target == 1 and generate_storybook != 1")
+            print("target_task", target_task)
+            for _, task in target_task.iterrows():
+                # prompt = "兔子托比在林间小溪上漂流,它沿途看到了很多鱼，它和其中一只叫波利的安康鱼做了朋友"
+                prompt = task["text"]
+                id = task["id"]
+                res = run(prompt, id, browser, context, target_page)
+                if res:
+                    # tasks.loc[id, "generate_storybook"] = 1
+                    tasks.loc[tasks["id"] == id, "generate_storybook"] = 1
+            tm.update_task(tasks)

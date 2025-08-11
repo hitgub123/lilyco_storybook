@@ -21,7 +21,7 @@ cloudinary.config(
 NOTDONE_PATH = os.getenv("NOTDONE_PATH")
 DONE_PATH = os.getenv("DONE_PATH")
 DONE_MD_PATH = os.getenv("DONE_MD_PATH")
-DONE_MD_PREFIX = "[TIME]"
+DONE_MD_PREFIX = os.getenv("DONE_MD_PREFIX")
 CLOUDINARY_ROOT_FOLDER = os.getenv("CLOUDINARY_FOLDER")
 
 max_results = 1000
@@ -156,3 +156,27 @@ def main():
 
 if __name__ == "__main__":
     main()
+    with open(DONE_MD_PATH, "r", encoding="utf-8") as f:
+        lines=f.readlines()[-2:]
+        line=lines[-1].replace('\n','')
+        if not line:
+            line=lines[-2].replace('\n','')
+        if not line.startswith(DONE_MD_PREFIX):
+            uploaded_list = line.split(",")
+            uploaded_list = [int(i) for i in uploaded_list]
+            from task_manager import Task_manager
+            tm = Task_manager()
+            tasks = tm.read_df_from_csv()
+            uncomplete_task = tasks.query(
+                "is_target == 1 and generate_storybook==1 and upload_storybook != 1"
+            )
+            uncomplete_set=uncomplete_task.id.to_set()
+            uploaded_set = set(uploaded_list)
+            logger.info(f'未上传的task id是{uncomplete_set}，\n本次上传成功{uploaded_set}')
+            if not uploaded_set.issubset(uncomplete_set):
+                logger.warning(f'本次上传成功的{uploaded_list-uncomplete_set}状态可能不对，请确认')
+            target_index=tasks["id"].isin(uploaded_list)
+            tasks.loc[target_index, "upload_storybook"] = 1
+            # tasks.loc[target_index, "is_target"] = 1
+
+            tm.update_task(tasks)

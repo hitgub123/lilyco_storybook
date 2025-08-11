@@ -26,7 +26,7 @@ class Task_manager:
         self.encoding = encoding
 
     def read_df_from_csv(self):
-        return pd.read_csv(self.CSV_PATH)
+        return pd.read_csv(self.CSV_PATH, dtype={'number': 'Int64'})
 
     def insert_task(self, text_list: list[str]):
         # 确保 asset 文件夹存在
