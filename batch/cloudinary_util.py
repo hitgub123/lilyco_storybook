@@ -1,4 +1,4 @@
-import shutil, os, glob
+import shutil, os, glob, re
 from collections import defaultdict
 import cloudinary, datetime
 import cloudinary.api
@@ -99,6 +99,75 @@ def move_group_to_done(group_files, group_name):
         shutil.move(f, os.path.join(target_fold, os.path.basename(f)))
 
 
+def rename_cloudinary_assets():
+    """
+    Renames folders and files in Cloudinary according to the specified rules.
+    - Folders are padded with leading zeros to 4 digits.
+    - Filenames are padded to the format XXXX-YYY.jpg.
+    """
+    # Get all assets. You might need to handle pagination for large number of assets.
+    # This example gets up to 500 assets.
+    # To get all assets, you will need to use the `next_cursor` for pagination.
+    response = cloudinary.api.resources(type="upload", max_results=500)
+    assets = response.get("resources", [])
+
+    # To fetch all assets, you can use a loop like this:
+    # next_cursor = response.get('next_cursor')
+    # while next_cursor:
+    #     response = cloudinary.api.resources(type="upload", max_results=500, next_cursor=next_cursor)
+    #     assets.extend(response.get('resources', []))
+    #     next_cursor = response.get('next_cursor')
+
+    for asset in assets:
+        public_id = asset["public_id"]
+
+        # This regex assumes a folder structure like "folder_number/file_number-file_number"
+        # e.g. "29/9-13"
+        match = re.match(r"([1-9a-z]+\/)(\d+)/(\d+)-(\d+)", public_id)
+
+        if match:
+            prefie = match.group(1)
+            folder_num_str = match.group(2)
+            file_num1_str = match.group(3)
+            file_num2_str = match.group(4)
+
+            # New names with padding
+            new_folder = f"{int(folder_num_str):04d}"
+            new_filename_part1 = f"{int(file_num1_str):04d}"
+            new_filename_part2 = f"{int(file_num2_str):03d}"
+
+            new_public_id = (
+                f"{prefie}{new_folder}/{new_filename_part1}-{new_filename_part2}"
+            )
+            new_display_name = (
+                f"{new_filename_part1}-{new_filename_part2}.{asset['format']}"
+            )
+
+            if public_id != new_public_id:
+                print(f"Renaming {public_id} to {new_public_id}@{new_display_name}")
+                try:
+                    cloudinary.uploader.rename(public_id, new_public_id)
+                    cloudinary.api.update(new_public_id, display_name=new_display_name)
+                except Exception as e:
+                    print(f"Error renaming {public_id}: {e}")
+        else:
+            match2 = re.match(r"([1-9a-z]+\/)(\d+)", public_id)
+            prefie = match2.group(1)
+            file_num1_str = match2.group(2)
+
+            new_filename_part1 = f"{int(file_num1_str):04d}"
+
+            new_public_id = f"{prefie}{new_filename_part1}"
+            new_display_name = f"{new_filename_part1}.{asset['format']}"
+            if public_id != new_public_id:
+                print(f"Renaming {public_id} to {new_public_id}@{new_display_name}")
+                try:
+                    cloudinary.uploader.rename(public_id, new_public_id)
+                    cloudinary.api.update(new_public_id, display_name=new_display_name)
+                except Exception as e:
+                    print(f"Error renaming {public_id}: {e}")
+
+
 def main():
     only_count = True
     cloudinary_comic_count, cloudinary_covers = 0, []
@@ -168,6 +237,7 @@ def main():
 
 
 if __name__ == "__main__":
+    rename_cloudinary_assets()
     main()
     with open(DONE_MD_PATH, "r", encoding="utf-8") as f:
         lines = f.readlines()[-2:]
@@ -193,9 +263,7 @@ if __name__ == "__main__":
                 f"未上传的task id是{uncomplete_set}，本次上传成功{uploaded_set}"
             )
             if not uploaded_set.issubset(uncomplete_set):
-                logger.warning(
-                    f"本次上传成功的数据状态可能不对，请确认"
-                )
+                logger.warning(f"本次上传成功的数据状态可能不对，请确认")
             target_index = tasks["id"].isin(uploaded_list)
             tasks.loc[target_index, "upload_storybook"] = 1
             # tasks.loc[target_index, "is_target"] = 1

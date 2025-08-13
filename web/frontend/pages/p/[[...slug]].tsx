@@ -15,12 +15,12 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
-	// console.log('slug', slug);
+	console.log('slug', slug);
 	// console.log('images', images);
 
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
-	// console.log('subId', subId, 'photoId', photoId);
+	console.log('subId', subId, 'photoId', photoId);
 
 	const [lastViewedPhoto, setLastViewedPhoto] = useLastViewedPhoto();
 
@@ -61,10 +61,10 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 					/>
 				)}
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
-					{images.map(({ id, public_id, format, blurDataUrl }) => (
+					{images.map(({ id, public_id, public_id_short, format, blurDataUrl }) => (
 						<Link
 							key={id}
-							href={`/p/${photoId}/${id}`}
+							href={`/p/${public_id_short}`}
 							ref={id === Number(lastViewedPhoto) ? lastViewedPhotoRef : null}
 							shallow
 							className="after:content after:shadow-highlight group relative mb-5 block w-full cursor-pointer after:pointer-events-none after:absolute after:inset-0 after:rounded-lg"
@@ -110,7 +110,7 @@ export async function getStaticProps(context: any) {
 	const results = await cloudinary.v2.search
 		.expression(`folder:${process.env.CLOUDINARY_FOLDER}/${index}`)
 		// .expression(`folder:={process.env.CLOUDINARY_FOLDER}`)
-		.sort_by('public_id', 'desc')
+		.sort_by('public_id', 'asc')
 		.max_results(100)
 		.execute();
 	let reducedResults: ImageProps[] = [];
@@ -122,6 +122,7 @@ export async function getStaticProps(context: any) {
 			height: result.height,
 			width: result.width,
 			public_id: result.public_id,
+			public_id_short: result.public_id.replace('comic1/', ''),
 			format: result.format,
 		});
 		i++;
@@ -159,7 +160,7 @@ export async function getStaticPaths() {
 		}
 	}
 	// console.log('files', files);
-	console.log('existingSlugs', existingSlugs);
+	// console.log('existingSlugs', existingSlugs);
 	let fullPaths = [];
 	
 	const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
@@ -171,9 +172,9 @@ export async function getStaticPaths() {
 			fullPaths.push({ params: { slug: [name] } });
 		}
 	}
-	for(let i = 0; i < fullPaths.length; i++) {
-		console.log(`fullPaths[${i}}=`, fullPaths[i]);
-	}
+	// for(let i = 0; i < fullPaths.length; i++) {
+	// 	console.log(`fullPaths[${i}}=`, fullPaths[i]);
+	// }
 
 	return {
 		paths: fullPaths,

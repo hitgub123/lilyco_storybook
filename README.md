@@ -30,3 +30,11 @@
     - generate_storybooks.py的run，它用短故事生成图片，保存到本地
     - cloudinary_util的main，它把生成的图片上传到cloudinary
     
+
+ 很好，本地已经实现了利用缓存只更新部分文件的功能，这个能在github action实现吗？
+ 怎么用gemini cli做llm？
+ 修改publicid倒序的bug？
+ 修改/p/0的bug
+ 做ai agent
+ 把故事内容写入网站
+ 实现参考图片生成绘本
