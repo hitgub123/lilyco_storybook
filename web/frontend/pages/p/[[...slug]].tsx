@@ -15,9 +15,9 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
-	console.log('slug', slug);
 	// console.log('images', images);
-
+	
+	// console.log('slug', slug);
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
 	console.log('subId', subId, 'photoId', photoId);
@@ -61,10 +61,10 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 					/>
 				)}
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
-					{images.map(({ id, public_id, public_id_short, format, blurDataUrl }) => (
+					{images.map(({ id, public_id, public_id_short, public_id_photo, format, blurDataUrl }) => (
 						<Link
 							key={id}
-							href={`/p/${public_id_short}`}
+							href={`/p/${public_id_photo}`}
 							ref={id === Number(lastViewedPhoto) ? lastViewedPhotoRef : null}
 							shallow
 							className="after:content after:shadow-highlight group relative mb-5 block w-full cursor-pointer after:pointer-events-none after:absolute after:inset-0 after:rounded-lg"
@@ -122,7 +122,10 @@ export async function getStaticProps(context: any) {
 			height: result.height,
 			width: result.width,
 			public_id: result.public_id,
+			// comic1/a/a-b → a/a-b
 			public_id_short: result.public_id.replace('comic1/', ''),
+			// comic1/a/a-b → a/b
+			public_id_photo: result.public_id.split('/')[2].replace('-', '/'),
 			format: result.format,
 		});
 		i++;
@@ -178,7 +181,8 @@ export async function getStaticPaths() {
 
 	return {
 		paths: fullPaths,
-		fallback: false,
+		// fallback: false,
+		fallback: 'blocking',
 	};
 	// return {
 	// 	paths: [

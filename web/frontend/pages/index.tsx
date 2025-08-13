@@ -38,7 +38,7 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
               Clone and Deploy
             </a> */}
 					</div>
-					{images.map(({ id, public_id, public_id_short, format, blurDataUrl }) => (
+					{images.map(({ id, public_id, public_id_short,public_id_photo, format, blurDataUrl }) => (
 						<Link
 							key={id}
 							href={`/p/${public_id_short}`}
@@ -82,13 +82,14 @@ export async function getStaticProps() {
   let i = 0;
   for (let result of results.resources) {
     reducedResults.push({
-      id: i,
-      height: result.height,
-      width: result.width,
-      public_id: result.public_id,
-      public_id_short: result.public_id.replace("comic1/", ""),
-      format: result.format,
-    });
+			id: i,
+			height: result.height,
+			width: result.width,
+			public_id: result.public_id,
+			public_id_short: result.public_id.replace('comic1/', ''),
+			public_id_photo: null,
+			format: result.format,
+		});
     i++;
   }
   // console.log("reducedResults", reducedResults);
