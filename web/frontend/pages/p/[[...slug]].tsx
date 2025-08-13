@@ -1,22 +1,22 @@
+import fs from 'fs/promises'; // 导入 Node.js 文件系统模块
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import path from 'path'; // 导入 Node.js 路径模块
 import { useEffect, useRef } from 'react';
 import Modal from '../../components/Modal';
 import cloudinary from '../../utils/cloudinary';
 import getBase64ImageUrl from '../../utils/generateBlurPlaceholder';
 import type { ImageProps } from '../../utils/types';
 import { useLastViewedPhoto } from '../../utils/useLastViewedPhoto';
-import fs from 'fs/promises'; // 导入 Node.js 文件系统模块
-import path from 'path'; // 导入 Node.js 路径模块
 const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
 	// console.log('images', images);
-	
+
 	// console.log('slug', slug);
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
@@ -61,10 +61,10 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 					/>
 				)}
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
-					{images.map(({ id, public_id, public_id_short, public_id_photo, format, blurDataUrl }) => (
+					{images.map(({ id, public_id, public_id_1, format, blurDataUrl }) => (
 						<Link
 							key={id}
-							href={`/p/${public_id_photo}`}
+							href={`/p/${public_id_1}/${id}`}
 							ref={id === Number(lastViewedPhoto) ? lastViewedPhotoRef : null}
 							shallow
 							className="after:content after:shadow-highlight group relative mb-5 block w-full cursor-pointer after:pointer-events-none after:absolute after:inset-0 after:rounded-lg"
@@ -122,10 +122,8 @@ export async function getStaticProps(context: any) {
 			height: result.height,
 			width: result.width,
 			public_id: result.public_id,
-			// comic1/a/a-b → a/a-b
-			public_id_short: result.public_id.replace('comic1/', ''),
-			// comic1/a/a-b → a/b
-			public_id_photo: result.public_id.split('/')[2].replace('-', '/'),
+			// comic1/a/a-b → a
+			public_id_1: result.public_id.split('/')[1],
 			format: result.format,
 		});
 		i++;
@@ -165,11 +163,11 @@ export async function getStaticPaths() {
 	// console.log('files', files);
 	// console.log('existingSlugs', existingSlugs);
 	let fullPaths = [];
-	
+
 	const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
 	const folders = results.folders;
 	// console.log('folders', folders);
-	for(let i = 0; i < folders.length; i++) {
+	for (let i = 0; i < folders.length; i++) {
 		let name = folders[i].name;
 		if (!existingSlugs.has(name)) {
 			fullPaths.push({ params: { slug: [name] } });

@@ -1,15 +1,15 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
-import Link from 'next/link'
-import Bridge from '../components/Icons/Bridge'
-import Logo from '../components/Icons/Logo'
-import cloudinary from '../utils/cloudinary'
-import getBase64ImageUrl from '../utils/generateBlurPlaceholder'
-import type { ImageProps } from '../utils/types'
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import Image from 'next/image';
+import Link from 'next/link';
+import Bridge from '../components/Icons/Bridge';
+import Logo from '../components/Icons/Logo';
+import cloudinary from '../utils/cloudinary';
+import getBase64ImageUrl from '../utils/generateBlurPlaceholder';
+import type { ImageProps } from '../utils/types';
 
 const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
-  return (
+	return (
 		<>
 			<Head>
 				<title>Comic List Page</title>
@@ -38,10 +38,10 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
               Clone and Deploy
             </a> */}
 					</div>
-					{images.map(({ id, public_id, public_id_short,public_id_photo, format, blurDataUrl }) => (
+					{images.map(({ id, public_id, public_id_1,  format, blurDataUrl }) => (
 						<Link
 							key={id}
-							href={`/p/${public_id_short}`}
+							href={`/p/${public_id_1}`}
 							className="after:content after:shadow-highlight group relative mb-5 block w-full cursor-pointer after:pointer-events-none after:absolute after:inset-0 after:rounded-lg"
 							target="_blank"
 							rel="noreferrer"
@@ -67,45 +67,45 @@ const Home: NextPage = ({ images }: { images: ImageProps[] }) => {
 			<footer className="p-6 text-center text-white/80 sm:p-12">Comic List Page</footer>
 		</>
 	);
-}
+};
 
-export default Home
+export default Home;
 
 export async function getStaticProps() {
-  const results = await cloudinary.v2.search
-    .expression(`folder:${process.env.CLOUDINARY_FOLDER}`)
-    .sort_by("public_id", "desc")
-    .max_results(500)
-    .execute();
-  let reducedResults: ImageProps[] = [];
+	const results = await cloudinary.v2.search
+		.expression(`folder:${process.env.CLOUDINARY_FOLDER}`)
+		.sort_by('public_id', 'desc')
+		.max_results(500)
+		.execute();
+	let reducedResults: ImageProps[] = [];
 
-  let i = 0;
-  for (let result of results.resources) {
-    reducedResults.push({
+	let i = 0;
+	for (let result of results.resources) {
+		reducedResults.push({
 			id: i,
 			height: result.height,
 			width: result.width,
 			public_id: result.public_id,
-			public_id_short: result.public_id.replace('comic1/', ''),
-			public_id_photo: null,
+			// comic1/a → a
+			public_id_1: result.public_id.replace('comic1/', ''),
 			format: result.format,
 		});
-    i++;
-  }
-  // console.log("reducedResults", reducedResults);
+		i++;
+	}
+	// console.log("reducedResults", reducedResults);
 
-  const blurImagePromises = results.resources.map((image: ImageProps) => {
-    return getBase64ImageUrl(image);
-  });
-  const imagesWithBlurDataUrls = await Promise.all(blurImagePromises);
+	const blurImagePromises = results.resources.map((image: ImageProps) => {
+		return getBase64ImageUrl(image);
+	});
+	const imagesWithBlurDataUrls = await Promise.all(blurImagePromises);
 
-  for (let i = 0; i < reducedResults.length; i++) {
-    reducedResults[i].blurDataUrl = imagesWithBlurDataUrls[i];
-  }
-  
-  return {
-    props: {
-      images: reducedResults,
-    },
-  };
+	for (let i = 0; i < reducedResults.length; i++) {
+		reducedResults[i].blurDataUrl = imagesWithBlurDataUrls[i];
+	}
+
+	return {
+		props: {
+			images: reducedResults,
+		},
+	};
 }

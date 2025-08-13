@@ -5,7 +5,7 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"build-backup": "shx cp -r out/p/* out-1/p || true",
+		"build-backup": "shx mkdir -p out/p && shx cp -r out/p/* out-1/p || true",
 		"post-build": "shx cp -r out-1/p out",
 		"my-build": "npm run build && npm run build-backup && npm run post-build"
 	},
