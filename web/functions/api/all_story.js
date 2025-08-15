@@ -2,22 +2,15 @@ async function handleGet(context) {
   const { request, env } = context;
   const db = env.DB;
   const url = new URL(request.url);
-  const id = url.searchParams.get('index');
   console.log(url)
-  if (!id) {
-    return new Response('Missing "index" query parameter', { status: 400 });
-  }
 
   try {
     // Query the Novels table for a specific ID
-    const stmt = db.prepare('SELECT * FROM Novels WHERE description = ?').bind(id);
-    const novel = await stmt.first();
+    const stmt = db.prepare('SELECT * FROM Novels');
+    const { results } = await stmt.all();
 
-    if (!novel) {
-      return new Response('Novel not found', { status: 404 });
-    }
 
-    return new Response(JSON.stringify(novel), {
+    return new Response(JSON.stringify(results), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (e) {
@@ -70,8 +63,8 @@ export async function onRequest(context) {
   switch (request.method) {
     case 'GET':
       return handleGet(context);
-    case 'POST':
-      return handlePost(context);
+    // case 'POST':
+    //   return handlePost(context);
     default:
       return new Response(`${request.method} is not allowed.`, {
         status: 405,

@@ -11,7 +11,7 @@ import cloudinary from '../../utils/cloudinary';
 import getBase64ImageUrl from '../../utils/generateBlurPlaceholder';
 import type { ImageProps } from '../../utils/types';
 import { useLastViewedPhoto } from '../../utils/useLastViewedPhoto';
-const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
+const ComicContent: NextPage = ({ images,story }: { images: ImageProps[], story: string }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
@@ -23,7 +23,7 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	console.log('subId', subId, 'photoId', photoId);
 
 	const [lastViewedPhoto, setLastViewedPhoto] = useLastViewedPhoto();
-	const [story, setStory] = useState('hello story');
+	// const [story, setStory] = useState('hello story');
 	const lastViewedPhotoRef = useRef<HTMLAnchorElement>(null);
 
 	useEffect(() => {
@@ -42,7 +42,8 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 			<main className="mx-auto max-w-[1960px] p-4">
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
 					<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
-						<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">{story}</h1>
+						<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">TITLE</h1>
+						<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">{story}</p>
 					</div>
 					{!images.length && (
 						<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
@@ -109,17 +110,20 @@ export async function getStaticProps(context: any) {
 			},
 		};
 	}
-	const url = `http://localhost:8788/api/story?q=${index}`;
-	// const a = await (await fetch(url)).json()
-	const b = await fetch(url, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			index: index,
-		}),
-	});
+	const url = `http://localhost:8788/api/story?index=${index}`;
+	// const url = `http://localhost:8788/api/story`;
+	// const b = await fetch(url, {
+		// 	method: 'POST',
+		// 	headers: {
+			// 		'Content-Type': 'application/json',
+			// 	},
+			// 	body: JSON.stringify({
+				// 		index: index,
+				// 	}),
+				// });
+	console.log('index', index);
+	const b = await fetch(url);
+	console.log('b', b);
 	const a = await b.json();	
 	console.log('a', a);
 	
@@ -158,6 +162,7 @@ export async function getStaticProps(context: any) {
 	return {
 		props: {
 			images: reducedResults,
+			story: a?.title,
 		},
 	};
 }
