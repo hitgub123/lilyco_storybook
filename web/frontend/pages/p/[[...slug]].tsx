@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import path from 'path'; // 导入 Node.js 路径模块
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Modal from '../../components/Modal';
 import cloudinary from '../../utils/cloudinary';
 import getBase64ImageUrl from '../../utils/generateBlurPlaceholder';
@@ -23,7 +23,7 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 	console.log('subId', subId, 'photoId', photoId);
 
 	const [lastViewedPhoto, setLastViewedPhoto] = useLastViewedPhoto();
-
+	const [story, setStory] = useState('hello story');
 	const lastViewedPhotoRef = useRef<HTMLAnchorElement>(null);
 
 	useEffect(() => {
@@ -39,28 +39,31 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 			<Head>
 				<title>Comic Page</title>
 			</Head>
-			{!images.length && (
-				<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
-					<div className="absolute inset-0 flex items-center justify-center opacity-20">
-						<span className="absolute left-0 right-0 bottom-0 h-[400px] bg-gradient-to-b from-black/0 via-black to-black"></span>
-					</div>
-
-					<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">Comic Page</h1>
-					<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">No storybook found!</p>
-				</div>
-			)}
 			<main className="mx-auto max-w-[1960px] p-4">
-				{/* {subId && /^\d+$/.test(subId) && ( */}
-				{subId && (
-					<Modal
-						images={images}
-						protoId={photoId}
-						onClose={() => {
-							setLastViewedPhoto(Number(subId));
-						}}
-					/>
-				)}
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+					<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
+						<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">{story}</h1>
+					</div>
+					{!images.length && (
+						<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
+							<div className="absolute inset-0 flex items-center justify-center opacity-20">
+								<span className="absolute left-0 right-0 bottom-0 h-[400px] bg-gradient-to-b from-black/0 via-black to-black"></span>
+							</div>
+
+							<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">Comic Page</h1>
+							<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">No storybook found!</p>
+						</div>
+					)}
+
+					{subId && (
+						<Modal
+							images={images}
+							protoId={photoId}
+							onClose={() => {
+								setLastViewedPhoto(Number(subId));
+							}}
+						/>
+					)}
 					{images.map(({ id, public_id, public_id_1, format, blurDataUrl }) => (
 						<Link
 							key={id}
@@ -106,6 +109,20 @@ export async function getStaticProps(context: any) {
 			},
 		};
 	}
+	const url = `http://localhost:8788/api/story?q=${index}`;
+	// const a = await (await fetch(url)).json()
+	const b = await fetch(url, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({
+			index: index,
+		}),
+	});
+	const a = await b.json();	
+	console.log('a', a);
+	
 	// console.log('context.params', context.params);
 	const results = await cloudinary.v2.search
 		.expression(`folder:${process.env.CLOUDINARY_FOLDER}/${index}`)
@@ -169,7 +186,8 @@ export async function getStaticPaths() {
 	// console.log('folders', folders);
 	for (let i = 0; i < folders.length; i++) {
 		let name = folders[i].name;
-		if (!existingSlugs.has(name)) {
+		// if (!existingSlugs.has(name)) {
+		if (true) {
 			fullPaths.push({ params: { slug: [name] } });
 		}
 	}
@@ -179,8 +197,8 @@ export async function getStaticPaths() {
 
 	return {
 		paths: fullPaths,
-		// fallback: false,
-		fallback: 'blocking',
+		fallback: false,
+		// fallback: 'blocking',
 	};
 	// return {
 	// 	paths: [
