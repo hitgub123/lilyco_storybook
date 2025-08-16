@@ -1,0 +1,1 @@
+result = subprocess.run([START_BROWSER_CMD], shell=True, capture_output=True, text=True)

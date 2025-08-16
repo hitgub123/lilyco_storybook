@@ -2,11 +2,13 @@ from playwright.sync_api import sync_playwright, Playwright, expect
 import time, os
 from logger_config import get_logger
 from dotenv import load_dotenv
-import random
+import random,subprocess
+from playwright.sync_api import TimeoutError
 
 WAIT_TIME = 30 * 1000
 load_dotenv()
 NOTDONE_PATH = os.getenv("NOTDONE_PATH")
+START_BROWSER_CMD = os.getenv("START_BROWSER_CMD")
 SCREENSHOT_QUALITY = int(os.getenv("SCREENSHOT_QUALITY"))
 logger = get_logger(__name__)
 
@@ -15,6 +17,17 @@ def sleep_random(sleep_time=10, bias=1):
     r_sleep_time = random.randint(sleep_time - bias, sleep_time + bias)
     time.sleep(r_sleep_time)
 
+
+def get_browser_with_retry(playwright: Playwright):
+    try:
+        return get_browser(playwright)
+    except Exception as e:
+        logger.error(f"发生错误: {e}")
+        START_BROWSER_CMD = os.getenv("START_BROWSER_CMD")
+        START_BROWSER_CMD_LIST = START_BROWSER_CMD.split("@@@")
+        subprocess.Popen(START_BROWSER_CMD_LIST)
+        time.sleep(10)
+        return get_browser(playwright)
 
 def get_browser(playwright: Playwright):
     # ---. 连接到在9222端口上运行的现有浏览器 ---
@@ -152,10 +165,19 @@ def upload_file(file_path,page,selector1='div[class~="file-uploader"]',selector2
 
 def run(prompt, id=1, pic=None):
     with sync_playwright() as playwright:
-        browser, context, target_page = get_browser(playwright)
+        browser, context, target_page = get_browser_with_retry(playwright)
         try:
-            # 示例：在你登录后的页面上，找到某个元素并截图
-            # 你需要把下面的选择器换成你登录后页面上的元素
+            close_panel_button = target_page.locator(
+                "button[aria-label='Close panel'][mattooltip='Close']"
+            )
+            try:
+                expect(close_panel_button).to_be_visible(timeout=WAIT_TIME)
+                close_panel_button.click()
+            # except TimeoutError as e:
+            except Exception as e:
+                logger.error(e)
+                print(f"在 {WAIT_TIME}ms 内未发现关闭按钮，跳过点击操作。")
+
             input_box = target_page.locator("rich-textarea p").first
             # 等待元素可见
             expect(input_box).to_be_visible(timeout=60)
@@ -211,12 +233,6 @@ def run(prompt, id=1, pic=None):
             expect(close_canvas_button).to_be_visible(timeout=WAIT_TIME)
             close_canvas_button.click()
 
-            close_panel_button = target_page.locator(
-                "button[aria-label='Close panel'][mattooltip='Close']"
-            )
-            expect(close_panel_button).to_be_visible(timeout=WAIT_TIME)
-            close_panel_button.click()
-
             return crawl_new_tab(context, href_storybook, id)
 
         except Exception as e:
@@ -226,7 +242,6 @@ def run(prompt, id=1, pic=None):
             # --- 脚本结束时，我们不再关闭浏览器，以便你下次还可以使用 ---
             # browser.close() # 注释掉这一行
             logger.debug("脚本执行完毕。浏览器保持打开状态。")
-
 
 if __name__ == "__main__":
     run_crawl_new_tab = 0
