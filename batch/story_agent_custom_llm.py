@@ -45,7 +45,7 @@ tm = Task_manager()
 
 OK_msg = "执行成功，请继续后续处理。"
 NG_msg = "执行失败，终止后续处理。"
-
+FINISH_msg="FINISH"
 
 def format_input(messages: list):
     formatted_messages = []
@@ -69,8 +69,7 @@ def format_output(response: list):
     assistant_reply_dict = generated_text_list[-1]
     assistant_content = assistant_reply_dict["content"]
     assistant_content = assistant_content.replace("\n", "")
-    tool_calls = False if assistant_content == "FINISH" else True
-    ai_message = AIMessage(content=assistant_content, tool_calls=tool_calls)
+    ai_message = AIMessage(content=assistant_content)
     return ai_message
 
 
@@ -191,12 +190,12 @@ def should_continue(state: AgentState) -> str:
     """决定是继续调用工具还是结束流程。"""
     last_message = state["messages"][-1]
     # 如果上一条是AI消息且包含工具调用，则执行工具
-    if isinstance(last_message, AIMessage) and last_message.tool_calls:
+    if isinstance(last_message, AIMessage) and last_message.content != FINISH_msg:
         return "continue"
     # 如果工具执行失败，或者AI决定结束，则终止
     if isinstance(last_message, ToolMessage) and NG_msg in last_message.content:
         return "end"
-    if isinstance(last_message, AIMessage) and not last_message.tool_calls:
+    if isinstance(last_message, AIMessage) and last_message.content == FINISH_msg:
         return "end"
     # 其他情况（比如工具执行成功），都应返回给Agent继续决策
     return "agent"
@@ -227,7 +226,7 @@ workflow.add_conditional_edges(
     lambda state: (
         "continue"
         if isinstance(state["messages"][-1], AIMessage)
-        and state["messages"][-1].tool_calls
+        and state["messages"][-1].content != FINISH_msg
         else "end"
     ),
     {"continue": "action", "end": END},
