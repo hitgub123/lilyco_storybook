@@ -29,10 +29,11 @@
     - generate_stories.py的generate_stories_by_generation_func，它根据提示词生成多个短故事
     - generate_storybooks.py的run，它用短故事生成图片，保存到本地
     - cloudinary_util的main，它把生成的图片上传到cloudinary
-    
+
+## wrangler d1
+- wrangler d1 execute novel-comic-db --command "SELECT name FROM sqlite_master WHERE type='table';"
+- npx wrangler d1 execute novel-comic-db --local --command="SELECT * FROM novels"
 
  <!-- 很好，本地已经实现了利用缓存只更新部分文件的功能，这个能在github action实现吗？ -->
  <!-- 怎么用gemini cli做llm？ -->
  <!-- 做ai agent -->
- <!-- 把故事内容写入网站 -->
- <!-- 实现参考图片生成绘本 -->

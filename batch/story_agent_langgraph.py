@@ -84,10 +84,12 @@ tool_node = ToolNode(tools)
 # LangGraph 需要 AIMessage 和 ToolCall 来驱动工具
 responses = [
     AIMessage(
+        id='m1',
         content="",
         tool_calls=[{"name": "generate_stories_tool", "args": {"topic": "一只勇敢的小兔子"}}]
     ),
     AIMessage(
+        id='m2',
         content="",
         tool_calls=[
             {"name": "generate_images_tool", "args": {"story": "小兔子托比发现了一张藏宝图。"}},
@@ -96,6 +98,7 @@ responses = [
         ]
     ),
     AIMessage(
+        id='m3',
         content="",
         tool_calls=[{"name": "upload_images_to_cloudinary_tool", "args": {}}]
     ),

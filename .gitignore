@@ -1,6 +1,6 @@
 **/wrangler.jsonc
 asset/pic/*
-.env
+*.env
 *.pyc
 .vscode/**
 log/**

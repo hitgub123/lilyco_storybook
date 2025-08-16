@@ -28,7 +28,7 @@ class Task_manager:
     def read_df_from_csv(self):
         return pd.read_csv(self.CSV_PATH, dtype={'number': 'Int64'})
 
-    def insert_task(self, text_list: list[str]):
+    def insert_task(self, text_list: list[str],pic:str=None):
         # 确保 asset 文件夹存在
         os.makedirs(os.path.dirname(self.CSV_PATH), exist_ok=True)
 
@@ -55,7 +55,7 @@ class Task_manager:
                     self.CSV_COLUMNS[2]: 0,
                     self.CSV_COLUMNS[3]: 0,
                     self.CSV_COLUMNS[4]: 1,
-                    self.CSV_COLUMNS[5]: 0,
+                    self.CSV_COLUMNS[5]: pic if pic else 0,
                 }
             )
 

@@ -32,30 +32,52 @@ async function handlePost(context) {
 
   try {
     const novelsToInsert = await request.json();
-    console.log(novelsToInsert)
     if (!Array.isArray(novelsToInsert)) {
         return new Response('Request body must be a JSON array of novels', { status: 400 });
     }
 
-    // Prepare a statement for inserting a novel
-    // Columns are based on the schema: title, author, description
+    if (novelsToInsert.length === 0) {
+        return new Response(JSON.stringify({ message: "Received empty array, no action taken." }), {
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    const inputIndexes = novelsToInsert.map(novel => novel.index).filter(Boolean);
+
+    if (inputIndexes.length === 0) {
+        return new Response('No valid "index" fields found in the input array.', { status: 400 });
+    }
+
+    const placeholders = inputIndexes.map(() => '?').join(',');
+    const selectStmt = db.prepare(`SELECT description FROM Novels WHERE description IN (${placeholders})`);
+    const { results: existingNovels } = await selectStmt.bind(...inputIndexes).all();
+    
+    const existingDescriptions = new Set(existingNovels.map(row => row.description));
+
+    const newNovelsToInsert = novelsToInsert.filter(novel => !existingDescriptions.has(novel.index));
+
+    if (newNovelsToInsert.length === 0) {
+        return new Response(JSON.stringify({ message: "All submitted novels already exist in the database." }), {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200
+        });
+    }
+
     const stmt = db.prepare(
       'INSERT INTO Novels (title,  description) VALUES (?,  ?)'
     );
 
-    // Create a batch of statements
-    const statements = novelsToInsert.map(novel =>
+    const statements = newNovelsToInsert.map(novel =>
       stmt.bind(novel.title,  novel.index)
     );
 
-    // Execute the batch
     const results = await db.batch(statements);
 
     return new Response(JSON.stringify(results), {
       headers: { 'Content-Type': 'application/json' },
     });
+
   } catch (e) {
-    // Handle potential JSON parsing errors or other issues
     if (e instanceof SyntaxError) {
         return new Response('Invalid JSON format in request body', { status: 400 });
     }

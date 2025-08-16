@@ -69,24 +69,34 @@ def generate_images_tool(story: str) -> str:
 
 # 模拟来自 cloudinary_util.py 的功能
 def upload_to_cloudinary_tool(dummy_input: str = "") -> str:
-    '''
-    这是一个模拟的Cloudinary上传工具。
-    它会假装上传not_done文件夹中的所有图片，然后删除它们。
-    '''
+    """
+    This is a mocked Cloudinary upload tool.
+    It will simulate uploading all images in the not_done folder, then delete them.
+    """
+    
+    # Start the simulation of the upload process
     print("\n[Tool: upload_to_cloudinary] 开始模拟上传流程...")
+    
+    # Check if the not_done folder is empty
     if not os.path.exists(NOTDONE_PATH) or not os.listdir(NOTDONE_PATH):
         msg = "[Tool: upload_to_cloudinary] 文件夹为空，没有图片需要上传。"
         print(msg)
         return msg
 
+    # Get the list of files to upload
     files_to_upload = os.listdir(NOTDONE_PATH)
     print(f"[Tool: upload_to_cloudinary] 找到 {len(files_to_upload)} 个文件准备上传。\n")
+    
+    # Simulate the upload process
     for filename in files_to_upload:
         file_path = os.path.join(NOTDONE_PATH, filename)
         print(f"[Tool: upload_to_cloudinary]   - 模拟上传: {filename}\n")
-        os.remove(file_path) # 删除文件以模拟移动
+        
+        # Delete the file to simulate the move
+        os.remove(file_path) 
         print(f"[Tool: upload_to_cloudinary]   - 清理本地文件: {filename}\n")
     
+    # Simulation complete
     print("[Tool: upload_to_cloudinary] 所有图片均已成功上传和清理。\n")
     return "所有图片均已成功上传到Cloudinary。"
 

@@ -99,7 +99,7 @@ def move_group_to_done(group_files, group_name):
         shutil.move(f, os.path.join(target_fold, os.path.basename(f)))
 
 
-def rename_cloudinary_assets():
+def multi_rename_remote_cloudinary_assets():
     """
     Renames folders and files in Cloudinary according to the specified rules.
     - Folders are padded with leading zeros to 4 digits.
@@ -235,10 +235,7 @@ def main():
 
         logger.debug(f"--- 组 '{group_name}' 处理完成 ---")
 
-
-if __name__ == "__main__":
-    rename_cloudinary_assets()
-    main()
+def update_task_record(tm=None):
     with open(DONE_MD_PATH, "r", encoding="utf-8") as f:
         lines = f.readlines()[-2:]
         line = lines[-1].replace("\n", "")
@@ -252,7 +249,8 @@ if __name__ == "__main__":
             uploaded_list = [int(i) for i in uploaded_list]
             from task_manager import Task_manager
 
-            tm = Task_manager()
+            if not tm:
+                tm = Task_manager()
             tasks = tm.read_df_from_csv()
             uncomplete_task = tasks.query(
                 "is_target == 1 and generate_storybook==1 and upload_storybook != 1"
@@ -269,3 +267,9 @@ if __name__ == "__main__":
             # tasks.loc[target_index, "is_target"] = 1
 
             tm.update_task(tasks)
+            return uploaded_list
+
+if __name__ == "__main__":
+    # multi_rename_remote_cloudinary_assets()
+    main()
+    update_task_record()

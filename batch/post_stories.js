@@ -5,7 +5,7 @@ const path = require('path');
 // CSV 文件路径 (相对于项目根目录)
 const csvFilePath = path.join(__dirname, '..', 'asset', 'task.csv');
 // 目标 API 地址
-const apiUrl = 'http://127.0.0.1:8787/api/story'; // 假设您的本地服务运行在 8787 端口
+const apiUrl = 'http://127.0.0.1:8788/api/story'; // 假设您的本地服务运行在 8787 端口
 
 /**
  * 将 ID 补零到指定长度

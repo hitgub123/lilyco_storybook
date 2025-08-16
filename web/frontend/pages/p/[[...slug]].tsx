@@ -5,13 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import path from 'path'; // 导入 Node.js 路径模块
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Modal from '../../components/Modal';
 import cloudinary from '../../utils/cloudinary';
 import getBase64ImageUrl from '../../utils/generateBlurPlaceholder';
 import type { ImageProps } from '../../utils/types';
 import { useLastViewedPhoto } from '../../utils/useLastViewedPhoto';
-const ComicContent: NextPage = ({ images,story }: { images: ImageProps[], story: string }) => {
+const ComicContent: NextPage = ({ images, story }: { images: ImageProps[]; story: string }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
@@ -20,7 +20,7 @@ const ComicContent: NextPage = ({ images,story }: { images: ImageProps[], story:
 	// console.log('slug', slug);
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
-	console.log('subId', subId, 'photoId', photoId);
+	// console.log('subId', subId, 'photoId', photoId);
 
 	const [lastViewedPhoto, setLastViewedPhoto] = useLastViewedPhoto();
 	// const [story, setStory] = useState('hello story');
@@ -42,7 +42,7 @@ const ComicContent: NextPage = ({ images,story }: { images: ImageProps[], story:
 			<main className="mx-auto max-w-[1960px] p-4">
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
 					<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
-						<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">TITLE</h1>
+						<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">STORY Description</h1>
 						<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">{story}</p>
 					</div>
 					{!images.length && (
@@ -110,23 +110,30 @@ export async function getStaticProps(context: any) {
 			},
 		};
 	}
-	const url = `http://localhost:8788/api/story?index=${index}`;
-	// const url = `http://localhost:8788/api/story`;
-	// const b = await fetch(url, {
+	let a = 'No story content found!';
+	try {
+		const url = `http://localhost:8788/api/story?index=${index}`;
+		// const url = `http://localhost:8788/api/story`;
+		// const b = await fetch(url, {
 		// 	method: 'POST',
 		// 	headers: {
-			// 		'Content-Type': 'application/json',
-			// 	},
-			// 	body: JSON.stringify({
-				// 		index: index,
-				// 	}),
-				// });
-	console.log('index', index);
-	const b = await fetch(url);
-	console.log('b', b);
-	const a = await b.json();	
-	console.log('a', a);
-	
+		// 		'Content-Type': 'application/json',
+		// 	},
+		// 	body: JSON.stringify({
+		// 		index: index,
+		// 	}),
+		// });
+		// console.log('index', index);
+		const b = await fetch(url);
+		// console.log('b', b);
+		const c = await b.json();
+		// console.log('c', c);
+		a = c?.title;
+		// console.log('a', a);
+
+	} catch (e) {
+		console.error(e);
+	}
 	// console.log('context.params', context.params);
 	const results = await cloudinary.v2.search
 		.expression(`folder:${process.env.CLOUDINARY_FOLDER}/${index}`)
@@ -162,14 +169,14 @@ export async function getStaticProps(context: any) {
 	return {
 		props: {
 			images: reducedResults,
-			story: a?.title,
+			story: a,
 		},
 	};
 }
 
 export async function getStaticPaths() {
 	const BUILD_CACHE_DIR = path.join(process.cwd(), 'out-1', 'p');
-	console.log('BUILD_CACHE_DIR', BUILD_CACHE_DIR);
+	// console.log('BUILD_CACHE_DIR', BUILD_CACHE_DIR);
 	let existingSlugs = new Set(); // 使用 Set 存储已存在的 slug，方便快速查找
 
 	// 尝试读取缓存目录中的文件
