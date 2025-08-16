@@ -11,7 +11,7 @@ NOTDONE_PATH = os.getenv("NOTDONE_PATH")
 START_BROWSER_CMD = os.getenv("START_BROWSER_CMD")
 SCREENSHOT_QUALITY = int(os.getenv("SCREENSHOT_QUALITY"))
 logger = get_logger(__name__)
-
+TARGET_URL_PART = "storybook"
 
 def sleep_random(sleep_time=10, bias=1):
     r_sleep_time = random.randint(sleep_time - bias, sleep_time + bias)
@@ -41,7 +41,6 @@ def get_browser(playwright: Playwright):
 
     # target_page = context.pages[-1]
     target_page = None
-    TARGET_URL_PART = "storybook"
     # 遍历所有浏览器上下文（通常只有一个）
     for context in browser.contexts:
         # 遍历该上下文中的所有页面（标签页）

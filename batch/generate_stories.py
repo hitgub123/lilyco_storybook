@@ -83,7 +83,7 @@ def generate_stories_by_generation_func(
     prompt = f"""请根据主题生成一个JSON对象。
     对象应该包含一个名为 "stories" 的键，其值是长度为 {number_of_stories}的数组。
     数组每个元素是{word_count}个字左右，跟主题有关系的独立小故事。
-    小故事里不要用任何代词，比如[小明是学生。他成绩很好]要改成[小明是学生。小明成绩很好]。
+    小故事里不要用任何代词。
     请确保您的回答是严格的JSON格式，不要包含任何额外的解释或注释。
     主题：
     '{topic}'

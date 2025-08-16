@@ -5,24 +5,12 @@ import subprocess,shlex
 load_dotenv()
 START_BROWSER_CMD = os.getenv("START_BROWSER_CMD")
 START_BROWSER_CMD_LIST = START_BROWSER_CMD.split("@@@")
-# START_BROWSER_CMD_LIST = [
-#     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-#     "--remote-debugging-port=9222",
-#     "--user-data-dir=C:\\edge-debug-profile",  # 确保这个路径是你想用的
-# ]
 
-try:
-    a = 1 / 0
-except Exception as e:
-    print(f"发生错误: {e}")
+result = subprocess.run(
+    "cd", shell=True,capture_output=True, text=True, encoding="utf-8"
+)
+result = subprocess.run(
+    ["node", "batch/post_stories.js"], capture_output=True, text=True, encoding="utf-8"
+)
 
-    # 执行命令并获取输出
-    result = subprocess.Popen(
-        START_BROWSER_CMD_LIST
-        # START_BROWSER_CMD
-    )
-
-    # 输出命令结果
-    print("标准输出:", result)
-    # print("标准错误:", result.stderr)
-    # print("返回码:", result.returncode)
+print(9)

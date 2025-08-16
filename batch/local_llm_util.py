@@ -38,7 +38,8 @@ class Local_llm:
     def invoke_query(self, query):
         
         messages = [
-            {"role": "system", "content": "用中文回答我的问题。"},{"role": "user", "content": query},
+            # {"role": "system", "content": "用中文回答我的问题。"},
+            {"role": "user", "content": query},
         ]
         response=self.pipe(messages)
 

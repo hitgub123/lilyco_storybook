@@ -51,7 +51,7 @@ class Task_manager:
             new_data.append(
                 {
                     self.CSV_COLUMNS[0]: start_id + i,
-                    self.CSV_COLUMNS[1]: text,
+                    self.CSV_COLUMNS[1]: text.replace(r'\r\n','，').replace(r'\n','，'),
                     self.CSV_COLUMNS[2]: 0,
                     self.CSV_COLUMNS[3]: 0,
                     self.CSV_COLUMNS[4]: 1,

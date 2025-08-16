@@ -78,7 +78,7 @@ def update_d1():
 
 if __name__ == "__main__":
     pic = os.path.join(SAMPLE_PIC_4_STORYBOOK, "gqj2.jpg")
-    generate_stories_tool(pic=pic)
+    # generate_stories_tool(pic=pic)
     generate_images_tool()
     upload_images_to_cloudinary_tool()
     update_d1()
