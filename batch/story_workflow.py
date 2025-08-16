@@ -34,10 +34,10 @@ def generate_stories_tool(
         logger.info("\n--- 成功生成的故事列表---")
         for i, story in enumerate(generated_stories_1):
             logger.info(f"{i}. {story}")
+        tm.insert_task(generated_stories_1, pic=pic)            
     else:
         logger.error("\n--- 未能生成故事 ---")
-
-    tm.insert_task(generated_stories_1, pic=pic)
+    
     return generated_stories_1
 
 
