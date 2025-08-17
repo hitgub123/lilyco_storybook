@@ -22,9 +22,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 
-# from local_llm_util import Local_llm
 
-# llm = Local_llm(llm_name="google/gemma-3-270m-it")
 
 def inject_tool_name(func):
     """
@@ -44,6 +42,7 @@ def inject_tool_name(func):
 def notice_groupC() -> str:
     """通知C部门"""
     pass
+
 @tool
 @inject_tool_name
 def notice_groupB() -> str:
@@ -61,16 +60,17 @@ def notice_groupA() -> str:
 def end_a_day() -> str:
     """完成所有任务后打卡下班"""
     pass
+
 @tool
 @inject_tool_name
 def buy_water() -> str:
-    """买了水才能去看望病人"""
+    """买水"""
     pass
 
 @tool
 @inject_tool_name
 def buy_instant_noodle() -> str:
-    """买了泡面才能后去看望病人"""
+    """买泡面"""
     pass
 
 @tool
@@ -82,7 +82,7 @@ def goto_hospital() -> str:
     # return ['C','A']
     return []
 
-class AgentState(TypedDict):   
+class AgentState(TypedDict):
     messages: Annotated[Sequence[AIMessage | HumanMessage | ToolMessage], operator.add]
 
 
@@ -93,7 +93,7 @@ tools = [
     notice_groupA,
     notice_groupB,
     notice_groupC,
-    end_a_day
+    end_a_day,
 ]
 
 tool_node = ToolNode(tools)
@@ -102,6 +102,7 @@ tool_node = ToolNode(tools)
 def agent_node(state: AgentState, llm) -> dict:
     messages = state["messages"]
     response = llm.invoke(messages)
+    print([t["name"] for t in response.tool_calls])
     return {"messages": [response]}
 
 
@@ -120,7 +121,7 @@ def create_agent_graph():
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         temperature=0,
-        google_api_key=os.environ.get("gemini_api_key"),
+        google_api_key=os.environ.get("gemini_api_key2"),
     )
     llm_with_tools = llm.bind_tools(tools)
 
@@ -140,8 +141,8 @@ def create_agent_graph():
     return workflow.compile()
 
 
-def agent_main(user_query, recursion_limit=10):
-    app = create_agent_graph()
+def agent_main(app, user_query, recursion_limit=10):
+    # app = create_agent_graph()
 
     initial_state = {"messages": [HumanMessage(content=user_query)]}
 
@@ -153,9 +154,15 @@ def agent_main(user_query, recursion_limit=10):
 
 
 if __name__ == "__main__":
-    prompt = f"""
-    我们代表公司去医院看望病人，去之前要买吃的和喝的。
-    看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。
-    最后我们才能打卡下班。
-    """
-    agent_main(prompt)
+    app = create_agent_graph()
+    while 1:
+        prompt = input("请输入你任务：\n")
+        # prompt = f"""
+        # 我们代表公司去医院看望病人，去之前要买吃的和喝的。
+        # 看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。
+        # 最后我们才能打卡下班。
+        # """
+        if prompt == "q":
+            break
+        else:
+            agent_main(app, prompt)

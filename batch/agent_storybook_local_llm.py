@@ -234,34 +234,6 @@ def execute_tools_node(state: AgentState) -> dict:
     return {"messages": [ToolMessage(content=result_content, tool_call_id=tool_name)]}
 
 
-# 这是给LLM的“超级指令”，是优化Agent决策能力的关键
-# SYSTEM_PROMPT_CONTENT = """你是一个故事绘本创作流程的控制助手。你的任务是按顺序调用工具来完成整个工作流。
-
-# 工作流程严格按照以下四步进行：
-# 第一步：**generate_stories_tool**，根据用户提供的主题生成故事。
-# 第二步：**generate_images_tool**，为上一步生成的故事制作图片。
-# 第三步：**upload_images_to_cloudinary_tool**，将制作好的图片上传。
-# 第四步：**update_d1_database_tool**，上传成功后，更新数据库。
-
-# 请严格遵守以下规则：
-# - **一步一动**: 每次只调用一个工具。
-# - **顺序执行**: 必须严格按照 1 -> 2 -> 3 -> 4 的顺序调用工具。
-# - **解读反馈**: 每个工具执行后会返回`OK_msg`或`NG_msg`。收到`OK_msg`表示上一步成功，你应该继续调用流程中的下一个工具。收到`NG_msg`表示上一步失败，你应该停止所有操作并报告失败。
-# - **用户输入**: 你收到的第一条用户消息是故事的主题，请用它来调用第一个工具 `generate_stories_tool`。
-# - **结束流程**: 当第四步 `update_d1_database_tool` 执行成功后，整个流程结束，你应该向用户报告整个任务已成功完成。
-# """
-
-SYSTEM_PROMPT_CONTENT = """你是一个严格的流程控制器。你的唯一任务是根据用户的最新请求，从下面的工具列表中选择一个必须执行的工具。
-    可用工具列表:
-    - `generate_stories_tool`
-    - `generate_images_tool`
-    - `upload_images_to_cloudinary_tool`
-    - `update_d1_database_tool`
-    - `FINISH` (当所有步骤都完成后使用)
-    你的回复必须只能是上述列表中的一个工具名称，不能包含任何其他文字、解释、标点符号或换行符。
-    例如，如果应该生成故事，你的回复必须是:
-    generate_stories_tool"""
-SYSTEM_PROMPT = SystemMessage(content=SYSTEM_PROMPT_CONTENT)
 
 
 def should_continue(state: AgentState) -> str:
@@ -279,7 +251,7 @@ def should_continue(state: AgentState) -> str:
     return "agent"
 
 
-def agent_node(state: AgentState) -> dict:
+def call_model(state: AgentState) -> dict:
     """调用LLM（大脑）来决定下一步行动。"""
     logger.info("--- Agent 正在思考... ---")
     # 在每次调用时，都把“超级指令”放在最前面
@@ -292,7 +264,7 @@ def agent_node(state: AgentState) -> dict:
 
 # 定义工作流
 workflow = StateGraph(AgentState)
-workflow.add_node("agent", agent_node)
+workflow.add_node("agent", call_model)
 # workflow.add_node("action", tool_node)
 workflow.add_node("action", execute_tools_node)
 
