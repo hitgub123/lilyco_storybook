@@ -20,22 +20,24 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 # 确保我们能从batch目录中导入其他模块
-import cloudinary_util
-import generate_storybooks
-import generate_stories
+import cloudinary_util, generate_storybooks, generate_stories
 from logger_config import get_logger
 from task_manager import Task_manager
 from dotenv import load_dotenv
 import subprocess
+from local_llm_util import Local_llm
 
 load_dotenv()
 logger = get_logger(__name__)
 SAMPLE_PIC_4_STORYBOOK = os.getenv("SAMPLE_PIC_4_STORYBOOK")
 sample_pic = os.path.join(SAMPLE_PIC_4_STORYBOOK, "gqj1.jpg")
 
+llm = Local_llm(llm_name="google/gemma-3-270m-it")
+
 tm = Task_manager()
-OK_msg='执行成功'
-NG_msg='执行失败'
+OK_msg = "执行成功"
+NG_msg = "执行失败"
+
 
 # --- 1. 工具定义 ---
 @tool
@@ -44,12 +46,8 @@ def generate_stories_tool(story_topic: str) -> str:
     # """根据主题生成1个短故事并保存。这是整个流程的第一步。"""
     logger.info(f"[Tool] 正在为主题 '{story_topic}' 生成故事...")
 
-    from local_llm_util import Local_llm
-    llm = Local_llm(llm_name="google/gemma-3-270m-it")
     generated_stories = generate_stories.generate_stories_by_generation_func(
-        topic=story_topic,
-        number_of_stories=1,
-        generation_func=llm.invoke_query_format1
+        topic=story_topic, number_of_stories=1, generation_func=llm.invoke_query_format1
     )
     if generated_stories:
         tm.insert_task(generated_stories, pic=sample_pic)
@@ -114,14 +112,17 @@ def update_d1_database_tool() -> str:
         return OK_msg
         # return OK_msg.format("步骤全部完成，请结束任务")
     else:
-        logger.error(f"数据库更新失败。错误: {result.stderr[:20]}")
-        return f"{NG_msg} 错误详情: {result.stderr}"
+        logger.error(f"数据库更新失败。错误: {result.stderr}")
+        return f"{NG_msg} 错误详情: {result.stderr[:20]}"
 
 
 class AgentState(TypedDict):
     # messages: Annotated[Sequence[BaseMessage], operator.add]
+
     # toolMessage will be added althought next code is used
-    messages: Annotated[Sequence[AIMessage | HumanMessage], operator.add]
+    # messages: Annotated[Sequence[AIMessage | HumanMessage], operator.add]
+    
+    messages: Annotated[Sequence[AIMessage | HumanMessage | ToolMessage], operator.add]
 
 
 tools = [
@@ -133,33 +134,50 @@ tools = [
 
 tool_node = ToolNode(tools)
 
+
 def agent_node(state: AgentState, llm) -> dict:
     messages = state["messages"]
     response = llm.invoke(messages)
     return {"messages": [response]}
 
 
-# 自定义的节点函数
+default_tool_node = ToolNode(tools)
+
+
+# 自定义的节点函数，用来mock不需要执行的节点
 def custom_tool_node(state):
     """
     自定义工具节点。
     如果调用的工具是 'hogehoge'，则直接返回 "ok"。
     否则，使用默认的 ToolNode 逻辑处理。
     """
-    mock_tools= [tools[0].name,tools[1].name,tools[2].name]
+    mock_tools = [tools[0].name, tools[1].name, tools[2].name]
 
     last_message = state["messages"][-1]
-    cur_tools =last_message.tool_calls
-    if cur_tools and cur_tools[0] and cur_tools[0]["name"] in mock_tools:
-        # 获取 f1 工具调用的 ID
-        tool_call_id = cur_tools[0]['id']
+    all_tool_calls = last_message.tool_calls
+    tool_messages = []
+    real_tool_calls = []
 
-        # 手动创建一个 ToolMessage 作为 f1 的返回结果
-        tool_message = ToolMessage(content=OK_msg, tool_call_id=tool_call_id)
-        return {"messages": [tool_message]}
-    else:
-        default_tool_node = ToolNode(tools)
-        return default_tool_node.invoke(state)
+    for tool_call in all_tool_calls:
+        if tool_call['name'] in mock_tools:
+            # 对于 mock 工具，直接创建成功的 ToolMessage
+            tool_messages.append(
+                ToolMessage(content=OK_msg, tool_call_id=tool_call['id'])
+            )
+        else:
+            real_tool_calls.append(tool_call)
+
+        if real_tool_calls:
+            # 创建一个临时的 AIMessage，它只包含需要真实执行的工具调用
+            temp_ai_message = AIMessage(content="", tool_calls=real_tool_calls)
+
+            # 调用 ToolNode，但传入一个只包含这个临时消息的 state
+            # 这样 ToolNode 就只会执行 real_tool_calls 里的工具
+            real_result = default_tool_node.invoke({"messages": [temp_ai_message]})
+
+            # 将真实执行的结果合并到我们的总结果列表中
+            tool_messages.extend(real_result['messages'])            
+    return {"messages": tool_messages}
 
 
 def should_call_tool(state: AgentState) -> str:
@@ -174,7 +192,7 @@ def create_agent_graph():
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         temperature=0,
-        google_api_key=os.environ.get("gemini_api_key2"),
+        google_api_key=os.environ.get("gemini_api_key"),
     )
     llm_with_tools = llm.bind_tools(tools)
 
@@ -209,6 +227,6 @@ def agent_main(user_query, recursion_limit=10):
 
 
 if __name__ == "__main__":
-    topic='城里长大的女孩lily第一次回到大山里,开始了乡村生活'
-    prompt=f'为下面的主题生成故事再生成绘本再上传再更新数据库。主题:{topic}'
+    topic = "城里长大的女孩lily第一次回到大山里,开始了乡村生活"
+    prompt = f"为下面的主题生成故事再生成绘本再上传再更新数据库。主题:{topic}"
     agent_main(prompt)
