@@ -1,4 +1,6 @@
 # プロジェクト概要：Lilyco Storybook 自動創作プラットフォーム
+- https://dev.novel-comic-site.pages.dev/
+- 2025/8/10から始まり、現在開発中
 
 ## 1. プロジェクト概観
 
