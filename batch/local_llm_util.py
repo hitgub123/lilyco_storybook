@@ -46,10 +46,10 @@ class Local_llm:
         print('response',response)
         return response
 
-    def invoke_query_format_huuingface_model(self, query):
+    def invoke_query_format1(self, query):
         
         messages = [
-            # {"role": "system", "content": "用中文回答我的问题。"},
+            {"role": "system", "content": "用中文回答我的问题。"},
             {"role": "user", "content": query},
         ]
         response=self.pipe(messages)

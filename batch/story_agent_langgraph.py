@@ -43,13 +43,13 @@ def generate_stories_tool(story_topic: str) -> str:
     """根据主题生成1个短故事并保存"""
     # """根据主题生成1个短故事并保存。这是整个流程的第一步。"""
     logger.info(f"[Tool] 正在为主题 '{story_topic}' 生成故事...")
-    # return OK_msg
+
     from local_llm_util import Local_llm
     llm = Local_llm(llm_name="google/gemma-3-270m-it")
     generated_stories = generate_stories.generate_stories_by_generation_func(
         topic=story_topic,
         number_of_stories=1,
-        generation_func=llm.invoke_query_format_huuingface_model
+        generation_func=llm.invoke_query_format1
     )
     if generated_stories:
         tm.insert_task(generated_stories, pic=sample_pic)
@@ -67,7 +67,6 @@ def generate_images_tool() -> str:
     """为任务管理器中的故事生成图片"""
     # """为任务管理器中的故事生成图片。这是流程的第二步。"""
     logger.info("[Tool] 正在生成图片...")
-    # return OK_msg
     tasks = tm.read_df_from_csv()
     result = False
     target_tasks = tasks.query("is_target == 1 and generate_storybook != 1")
@@ -88,7 +87,6 @@ def upload_images_to_cloudinary_tool() -> str:
     """上传已生成的图片到Cloudinary"""
     # """上传已生成的图片到Cloudinary。这是流程的第三步。"""
     logger.info("[Tool] 正在上传图片到 Cloudinary...")
-    # return OK_msg
     cloudinary_util.main()
     uploaded_list = cloudinary_util.update_task_record(tm)
     if uploaded_list:
@@ -104,7 +102,6 @@ def update_d1_database_tool() -> str:
     # """更新数据库。这是流程的最后一步。"""
     """更新数据库"""
     logger.info("[Tool] 正在更新数据库...")
-    # return OK_msg
     result = subprocess.run(
         ["node", "batch/post_stories.js"],
         capture_output=True,
@@ -112,18 +109,19 @@ def update_d1_database_tool() -> str:
         encoding="utf-8",
     )
     # 正确的成功逻辑判断
-    if result.returncode == 0 and not result.strerr:
+    if result.returncode == 0 and not result.stderr:
         logger.info(f"数据库更新成功。输出: {result.stdout}")
         return OK_msg
         # return OK_msg.format("步骤全部完成，请结束任务")
     else:
-        logger.error(f"数据库更新失败。错误: {result.stderr}")
+        logger.error(f"数据库更新失败。错误: {result.stderr[:20]}")
         return f"{NG_msg} 错误详情: {result.stderr}"
 
 
 class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], operator.add]
-    # messages: Annotated[Sequence[AIMessage | HumanMessage], operator.add]
+    # messages: Annotated[Sequence[BaseMessage], operator.add]
+    # toolMessage will be added althought next code is used
+    messages: Annotated[Sequence[AIMessage | HumanMessage], operator.add]
 
 
 tools = [
@@ -134,9 +132,6 @@ tools = [
 ]
 
 tool_node = ToolNode(tools)
-tool_names = [tool.name for tool in tools]
-tool_map = {tool.name: tool for tool in tools}
-
 
 def agent_node(state: AgentState, llm) -> dict:
     messages = state["messages"]
@@ -144,22 +139,27 @@ def agent_node(state: AgentState, llm) -> dict:
     return {"messages": [response]}
 
 
-# def tool_node(state: AgentState) -> dict:
-#     last_message = state["messages"][-1]
+# 自定义的节点函数
+def custom_tool_node(state):
+    """
+    自定义工具节点。
+    如果调用的工具是 'hogehoge'，则直接返回 "ok"。
+    否则，使用默认的 ToolNode 逻辑处理。
+    """
+    mock_tools= [tools[0].name,tools[1].name,tools[2].name]
 
-#     if last_message.tool_calls:
-#         tool_call = last_message.tool_calls[0]
-#         tool_name = tool_call["name"]
-#         tool_args = tool_call["args"]
-#         if tool_name in tool_map:
-#             tool, args = tool_map[tool_name], {}
-#             if tool_name == tool_names[0]:
-#                 args = tool_args
-#             result = tool.invoke(args)
-#             return {
-#                 "messages": [AIMessage(content=f"Tool result: {result}")],
-#             }
-#     return {"messages": [AIMessage(content="No tool called")]}
+    last_message = state["messages"][-1]
+    cur_tools =last_message.tool_calls
+    if cur_tools and cur_tools[0] and cur_tools[0]["name"] in mock_tools:
+        # 获取 f1 工具调用的 ID
+        tool_call_id = cur_tools[0]['id']
+
+        # 手动创建一个 ToolMessage 作为 f1 的返回结果
+        tool_message = ToolMessage(content=OK_msg, tool_call_id=tool_call_id)
+        return {"messages": [tool_message]}
+    else:
+        default_tool_node = ToolNode(tools)
+        return default_tool_node.invoke(state)
 
 
 def should_call_tool(state: AgentState) -> str:
@@ -181,7 +181,9 @@ def create_agent_graph():
     workflow = StateGraph(AgentState)
 
     workflow.add_node("agent", lambda state: agent_node(state, llm_with_tools))
-    workflow.add_node("tool", tool_node)
+    # workflow.add_node("tool", tool_node)
+    # use custom_tool_node if want to change the default tool_node
+    workflow.add_node("tool", custom_tool_node)
 
     workflow.set_entry_point("agent")
 
