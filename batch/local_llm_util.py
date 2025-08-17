@@ -46,6 +46,20 @@ class Local_llm:
         print('response',response)
         return response
 
+    def invoke_query_format_huuingface_model(self, query):
+        
+        messages = [
+            # {"role": "system", "content": "用中文回答我的问题。"},
+            {"role": "user", "content": query},
+        ]
+        response=self.pipe(messages)
+        print('response',response)
+        generated_text_list = response[0]["generated_text"]
+        assistant_reply_dict = generated_text_list[-1]
+        assistant_content = assistant_reply_dict["content"]
+        return assistant_content
+
+
     def invoke_custom(self, query):
         messages = [
             # {"role": "system", "content": "你是智能AI助手，用中文回答我的问题。"},

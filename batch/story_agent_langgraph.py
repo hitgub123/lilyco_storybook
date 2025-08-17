@@ -40,13 +40,16 @@ NG_msg='执行失败'
 # --- 1. 工具定义 ---
 @tool
 def generate_stories_tool(story_topic: str) -> str:
-    """根据主题生成1个短故事并保存。这是整个流程的第一步。"""
+    """根据主题生成1个短故事并保存"""
+    # """根据主题生成1个短故事并保存。这是整个流程的第一步。"""
     logger.info(f"[Tool] 正在为主题 '{story_topic}' 生成故事...")
-    return OK_msg
+    # return OK_msg
+    from local_llm_util import Local_llm
+    llm = Local_llm(llm_name="google/gemma-3-270m-it")
     generated_stories = generate_stories.generate_stories_by_generation_func(
         topic=story_topic,
         number_of_stories=1,
-        generation_func=llm.invoke_query
+        generation_func=llm.invoke_query_format_huuingface_model
     )
     if generated_stories:
         tm.insert_task(generated_stories, pic=sample_pic)
@@ -61,8 +64,10 @@ def generate_stories_tool(story_topic: str) -> str:
 
 @tool
 def generate_images_tool() -> str:
-    """为任务管理器中的故事生成图片。这是流程的第二步。"""
+    """为任务管理器中的故事生成图片"""
+    # """为任务管理器中的故事生成图片。这是流程的第二步。"""
     logger.info("[Tool] 正在生成图片...")
+    # return OK_msg
     tasks = tm.read_df_from_csv()
     result = False
     target_tasks = tasks.query("is_target == 1 and generate_storybook != 1")
@@ -80,8 +85,10 @@ def generate_images_tool() -> str:
 
 @tool
 def upload_images_to_cloudinary_tool() -> str:
-    """上传已生成的图片到Cloudinary。这是流程的第三步。"""
+    """上传已生成的图片到Cloudinary"""
+    # """上传已生成的图片到Cloudinary。这是流程的第三步。"""
     logger.info("[Tool] 正在上传图片到 Cloudinary...")
+    # return OK_msg
     cloudinary_util.main()
     uploaded_list = cloudinary_util.update_task_record(tm)
     if uploaded_list:
@@ -94,8 +101,10 @@ def upload_images_to_cloudinary_tool() -> str:
 
 @tool
 def update_d1_database_tool() -> str:
-    """更新数据库。这是流程的最后一步。"""
+    # """更新数据库。这是流程的最后一步。"""
+    """更新数据库"""
     logger.info("[Tool] 正在更新数据库...")
+    # return OK_msg
     result = subprocess.run(
         ["node", "batch/post_stories.js"],
         capture_output=True,
@@ -103,7 +112,7 @@ def update_d1_database_tool() -> str:
         encoding="utf-8",
     )
     # 正确的成功逻辑判断
-    if result.returncode == 0:
+    if result.returncode == 0 and not result.strerr:
         logger.info(f"数据库更新成功。输出: {result.stdout}")
         return OK_msg
         # return OK_msg.format("步骤全部完成，请结束任务")
@@ -135,22 +144,22 @@ def agent_node(state: AgentState, llm) -> dict:
     return {"messages": [response]}
 
 
-def tool_node(state: AgentState) -> dict:
-    last_message = state["messages"][-1]
+# def tool_node(state: AgentState) -> dict:
+#     last_message = state["messages"][-1]
 
-    if last_message.tool_calls:
-        tool_call = last_message.tool_calls[0]
-        tool_name = tool_call["name"]
-        tool_args = tool_call["args"]
-        if tool_name in tool_map:
-            tool, args = tool_map[tool_name], {}
-            if tool_name == tool_names[0]:
-                args = tool_args
-            result = tool.invoke(args)
-            return {
-                "messages": [AIMessage(content=f"Tool result: {result}")],
-            }
-    return {"messages": [AIMessage(content="No tool called")]}
+#     if last_message.tool_calls:
+#         tool_call = last_message.tool_calls[0]
+#         tool_name = tool_call["name"]
+#         tool_args = tool_call["args"]
+#         if tool_name in tool_map:
+#             tool, args = tool_map[tool_name], {}
+#             if tool_name == tool_names[0]:
+#                 args = tool_args
+#             result = tool.invoke(args)
+#             return {
+#                 "messages": [AIMessage(content=f"Tool result: {result}")],
+#             }
+#     return {"messages": [AIMessage(content="No tool called")]}
 
 
 def should_call_tool(state: AgentState) -> str:
@@ -198,4 +207,6 @@ def agent_main(user_query, recursion_limit=10):
 
 
 if __name__ == "__main__":
-    agent_main("城里长大的女孩lily第一次回到大山里,开始了乡村生活")
+    topic='城里长大的女孩lily第一次回到大山里,开始了乡村生活'
+    prompt=f'为下面的主题生成故事再生成绘本再上传再更新数据库。主题:{topic}'
+    agent_main(prompt)

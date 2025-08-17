@@ -26,7 +26,7 @@ import cloudinary_util
 import generate_storybooks
 import generate_stories
 from logger_config import get_logger
-from batch.local_llm_util import Local_llm
+from local_llm_util import Local_llm
 from task_manager import Task_manager
 from dotenv import load_dotenv
 import subprocess
