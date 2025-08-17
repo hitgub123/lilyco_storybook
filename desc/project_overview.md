@@ -35,7 +35,7 @@
 
 - **本地 LLM 运行环境**: **Ollama**
   - 这是项目的一大亮点。通过 Ollama，成功在本地运行了多个强大的开源模型，并将其集成到 LangChain Agent 中，实现了模型的私有化部署和无限次调用。
-  - **实践过的模型**: Llama 3 (`llama3:instruct`), Phi-3 (`phi3:instruct`), Gemma 2 (`gemma2:instruct`) 等。
+  - **实践过的模型**: Phi-3 , Gemma 3 等。
 
 - **云服务与外部工具**:
   - **Cloudinary**: 用于存储和管理由 AI 生成的图片资源。
