@@ -5,9 +5,8 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
-from langchain_huggingface import HuggingFacePipeline
+from langchain_ollama.chat_models import ChatOllama
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
@@ -85,7 +84,7 @@ def goto_hospital() -> str:
     # return []
 
 
-def create_agent():
+def create_agent(llm):
     tools = [
         goto_hospital,
         buy_instant_noodle,
@@ -96,13 +95,6 @@ def create_agent():
         end_a_day,
     ]
 
-    llm = HuggingFacePipeline.from_model_id(
-        model_id="google/gemma-3-270m-it",
-        # model_id="google/gemma-3-1b-it",
-        task="text-generation",
-        device=0 if torch.cuda.is_available() else -1,
-        pipeline_kwargs={"max_new_tokens": 500},
-    )
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -122,7 +114,11 @@ def create_agent():
 
 
 if __name__ == "__main__":
-    agent = create_agent()
+    # model="gemma3:1b-it-qat"  #do not support function calling
+    # model = "allenporter/xlam:1b" # can only answer computer questions
+    model = "phi4-mini:3.8b"
+    llm = ChatOllama(model=model, temperature=0)
+    agent = create_agent(llm)
     chat_history = []
     while 1:
         prompt = input("请输入你今天的任务\n")

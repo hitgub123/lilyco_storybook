@@ -37,3 +37,6 @@
  <!-- 很好，本地已经实现了利用缓存只更新部分文件的功能，这个能在github action实现吗？ -->
  <!-- 怎么用gemini cli做llm？ -->
  <!-- 做ai agent -->
+
+
+## ollama run gemma3:1b-it-qat
