@@ -10,16 +10,18 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 #     "temperature": 0,
 #     "max_tokens": None,
 #     "top_p": 0.8,
-#     "google_api_key": os.environ.get("gemini_api_key"),
+#     "google_api_key": os.environ.get("gemini_api_key2"),
 # }
 
-def get_llm(model_name="gemini-2.5-flash",api_key=None):
+
+def get_llm(model_name="gemini-2.5-flash", api_key=None):
     if not api_key:
-        api_key = os.environ.get("gemini_api_key")
+        api_key = os.environ.get("gemini_api_key2")
     llm = ChatGoogleGenerativeAI(
         model=model_name, google_api_key=api_key, temperature=0
     )
     return llm
+
 
 # if __name__ == "__main__":
 #     client = get_client()

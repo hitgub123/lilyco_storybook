@@ -1,12 +1,11 @@
 import functools
 import os
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 from typing import Sequence, Annotated, TypedDict
 import operator
-from local_llm_util_v2 import CustomLLM
+from local_llm_util_2 import CustomLLM
 
 # --- 模块和工具导入 ---
 from langchain_core.tools import tool
@@ -21,20 +20,20 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 
-from local_llm_util_v2 import CustomLLM
-
-
 def inject_tool_name(func):
     """
     一个装饰器，它将原始函数的名称作为关键字参数 '__tool_name' 注入。
     """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # 将函数名注入到调用参数中
         # kwargs['__tool_name'] = func.__name__
         print(func.__name__)
         return func(*args, **kwargs)
+
     return wrapper
+
 
 # --- 1. 工具定义 ---
 @tool
@@ -42,11 +41,14 @@ def inject_tool_name(func):
 def notice_groupC() -> str:
     """通知C部门"""
     pass
+
+
 @tool
 @inject_tool_name
 def notice_groupB() -> str:
     """通知B部门"""
     pass
+
 
 @tool
 @inject_tool_name
@@ -54,22 +56,27 @@ def notice_groupA() -> str:
     """通知A部门"""
     pass
 
+
 @tool
 @inject_tool_name
 def end_a_day() -> str:
     """完成所有任务后打卡下班"""
     pass
+
+
 @tool
 @inject_tool_name
 def buy_water() -> str:
     """买水"""
     pass
 
+
 @tool
 @inject_tool_name
 def buy_instant_noodle() -> str:
     """买泡面"""
     pass
+
 
 @tool
 @inject_tool_name
@@ -80,7 +87,8 @@ def goto_hospital() -> str:
     # return ['C','A']
     return []
 
-class AgentState(TypedDict):   
+
+class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
 
 
@@ -91,7 +99,7 @@ tools = [
     notice_groupA,
     notice_groupB,
     notice_groupC,
-    end_a_day
+    end_a_day,
 ]
 
 tool_node = ToolNode(tools)
@@ -100,14 +108,14 @@ tool_node = ToolNode(tools)
 def agent_node(state: AgentState, llm) -> dict:
     messages = state["messages"]
     response = llm._generate(messages)
-    return {'messages':[response]}
+    return {"messages": [response]}
 
 
 default_tool_node = ToolNode(tools)
 
 
 def should_call_tool(state: AgentState) -> str:
-    
+
     last_message = state["messages"][-1]
     if last_message.tool_calls:
         return "tool"
@@ -140,7 +148,7 @@ def create_agent_graph():
     return workflow.compile()
 
 
-def agent_main(app,user_query, recursion_limit=10):
+def agent_main(app, user_query, recursion_limit=10):
     # app = create_agent_graph()
 
     initial_state = {"messages": [HumanMessage(content=user_query)]}
@@ -159,11 +167,11 @@ if __name__ == "__main__":
     看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。
     最后我们才能打卡下班。
     """
-    agent_main(app,prompt)
+    agent_main(app, prompt)
     while 1:
-        prompt=input('请输入你今天的任务\n')
+        prompt = input("请输入你今天的任务\n")
 
-        if prompt=='q':
+        if prompt == "q":
             break
         else:
-            agent_main(app,prompt)
+            agent_main(app, prompt)

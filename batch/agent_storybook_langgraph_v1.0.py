@@ -121,7 +121,7 @@ class AgentState(TypedDict):
 
     # toolMessage will be added althought next code is used
     # messages: Annotated[Sequence[AIMessage | HumanMessage], operator.add]
-    
+
     messages: Annotated[Sequence[AIMessage | HumanMessage | ToolMessage], operator.add]
 
 
@@ -159,10 +159,10 @@ def custom_tool_node(state):
     real_tool_calls = []
 
     for tool_call in all_tool_calls:
-        if tool_call['name'] in mock_tools:
+        if tool_call["name"] in mock_tools:
             # 对于 mock 工具，直接创建成功的 ToolMessage
             tool_messages.append(
-                ToolMessage(content=OK_msg, tool_call_id=tool_call['id'])
+                ToolMessage(content=OK_msg, tool_call_id=tool_call["id"])
             )
         else:
             real_tool_calls.append(tool_call)
@@ -176,7 +176,7 @@ def custom_tool_node(state):
             real_result = default_tool_node.invoke({"messages": [temp_ai_message]})
 
             # 将真实执行的结果合并到我们的总结果列表中
-            tool_messages.extend(real_result['messages'])            
+            tool_messages.extend(real_result["messages"])
     return {"messages": tool_messages}
 
 
@@ -192,7 +192,7 @@ def create_agent_graph():
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         temperature=0,
-        google_api_key=os.environ.get("gemini_api_key"),
+        google_api_key=os.environ.get("gemini_api_key2"),
     )
     llm_with_tools = llm.bind_tools(tools)
 
