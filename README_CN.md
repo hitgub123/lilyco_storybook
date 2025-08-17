@@ -1,6 +1,6 @@
 # 项目介绍：Lilyco Storybook 自动化创作平台 
 - https://dev.novel-comic-site.pages.dev/
-- 2025/8/10开始，开发中
+- 第一次学习做AI相关的项目，2025/8/10开始，开发中
 
 ## 1. 项目概述
 
