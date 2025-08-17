@@ -120,8 +120,9 @@ if __name__ == "__main__":
     llm = ChatOllama(model=model, temperature=0)
     agent = create_agent(llm)
     chat_history = []
+    #我们代表公司去医院看望病人，去之前要买吃的和喝的。看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。最后我们才能打卡下班。
     while 1:
-        prompt = input("请输入你今天的任务\n")
+        prompt = input("请输入今天的任务：\n")
         if prompt == "q":
             break
         else:
@@ -132,4 +133,4 @@ if __name__ == "__main__":
                     AIMessage(content=response["output"]),
                 ]
             )
-            print(response)
+            # print(response)

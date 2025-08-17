@@ -85,7 +85,7 @@ def goto_hospital() -> str:
     # return []
 
 
-def create_agent():
+def create_agent(llm):
     tools = [
         goto_hospital,
         buy_instant_noodle,
@@ -95,11 +95,6 @@ def create_agent():
         notice_groupC,
         end_a_day,
     ]
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=0,
-        google_api_key=os.environ.get("gemini_api_key2"),
-    )
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -120,10 +115,15 @@ def create_agent():
 
 
 if __name__ == "__main__":
-    agent = create_agent()
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0,
+        google_api_key=os.environ.get("gemini_api_key2"),
+    )
+    agent = create_agent(llm)
     chat_history = []
     while 1:
-        prompt = input("请输入你今天的任务\n")
+        prompt = input("请输入今天的任务：\n")
         if prompt == "q":
             break
         else:
@@ -134,4 +134,4 @@ if __name__ == "__main__":
                     AIMessage(content=response["output"]),
                 ]
             )
-            print(response)
+            # print(response)

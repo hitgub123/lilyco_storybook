@@ -163,9 +163,7 @@ def agent_main(app, user_query, recursion_limit=10):
 if __name__ == "__main__":
     app = create_agent_graph()
     prompt = f"""
-    我们代表公司去医院看望病人，去之前要买吃的和喝的。
-    看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。
-    最后我们才能打卡下班。
+    我们代表公司去医院看望病人，去之前要买吃的和喝的。看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。最后我们才能打卡下班。
     """
     agent_main(app, prompt)
     while 1:
