@@ -28,7 +28,7 @@
   - **智能代理 (Agents)**: 项目深入使用了 `AgentExecutor` 和 `create_tool_calling_agent` 来构建能够自主决策、并行调用工具的智能代理。
   - **图工作流 (Graphs)**: 探索了 `LangGraph` 来编排更稳定、更可控的工作流。实践了两种模式：
     1.  **Agentic Loop**: 通过条件节点（如 `should_call_tool`）让 Agent 自主循环决策。
-    2.  **State Machine**: 通过路由（Router）节点实现一个确定性的、按预定顺序执行的有限状态机工作流。
+    1.  **State Machine**: 通过路由（Router）节点实现一个确定性的、按预定顺序执行的有限状态机工作流。
   - **模型集成**: 实践了多种大语言模型（LLM）的集成方式：
     - `langchain-google-genai`: 用于调用 Google 的 **Gemini** 系列模型。
     - `langchain-ollama`: 用于与本地部署的开源模型进行交互。
