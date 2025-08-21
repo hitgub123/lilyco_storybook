@@ -98,7 +98,7 @@ def create_agent(llm):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
-                "system",1
+                "system",
                 "你是一个能干的秘书，会根据用户的请求和对话历史来决定如何行动。",
             ),
             MessagesPlaceholder(variable_name="chat_history"),
