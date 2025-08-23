@@ -43,7 +43,7 @@ if torch.cuda.is_available():
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         # torch_dtype=torch.float16,
-        device_map=1,
+        device_map=0,
     )
 
     # 2. 关键修复步骤：确保模型和分词器配置同步
