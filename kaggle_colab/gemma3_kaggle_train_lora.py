@@ -1,5 +1,5 @@
 # =======================================================================
-# 单元格 1: 安装所有必需的库 (包含 peft 和 bitsandbytes)
+# 单元格 1: 安装所有必需的库
 # =======================================================================
 print("Installing libraries for QLoRA finetuning...")
 !pip install -q -U transformers peft bitsandbytes datasets accelerate
@@ -29,9 +29,10 @@ except Exception as e:
 # =======================================================================
 class TrainingConfig:
     MODEL_ID = "google/gemma-3-270m-it"
-    # MODEL_ID = "google/gemma-3-1b-it"
+    # MODEL_ID = "google/gemma-3-1bm-it"
+    # MODEL_ID = "google/gemma-3-4b-it"
     DATA_FILE_PATH = "/kaggle/input/test01/training_data_for_agent.jsonl" # <-- 请务必修改为您的路径
-    OUTPUT_DIR = "/kaggle/working/gemma3_qlora_finetuned" # 输出 LoRA 适配器
+    OUTPUT_DIR = "/kaggle/working/gemma3_qlora_finetuned"
 
 print("Training Configuration:")
 print(f"  - Model: {TrainingConfig.MODEL_ID}")
@@ -78,7 +79,7 @@ print("Tokenizing dataset...")
 tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
 print("Tokenization complete.")
 
-# --- 重新引入 QLoRA 配置 ---
+# --- QLoRA 配置 ---
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_quant_type="nf4",
@@ -92,31 +93,38 @@ lora_config = LoraConfig(
     task_type="CAUSAL_LM",
 )
 
-print("Loading model with QLoRA configuration...")
+# --- 加载并准备模型 (采纳建议进行修改) ---
+print("Loading model with QLoRA configuration and best practices...")
 model = AutoModelForCausalLM.from_pretrained(
     TrainingConfig.MODEL_ID,
     quantization_config=quantization_config,
     device_map=0,
     torch_dtype=torch.float16,
+    attn_implementation='eager', # <-- 修改1: 使用 eager attention
+    use_cache=False,             # <-- 修改2: 明确禁用 use_cache
 )
 model = prepare_model_for_kbit_training(model)
 model = get_peft_model(model, lora_config)
 print("Model prepared for QLoRA training.")
-model.print_trainable_parameters() # 打印可训练参数信息
+model.print_trainable_parameters()
 
-# --- 使用“生产环境”的训练参数 ---
+# --- 训练参数 (采纳建议进行修改) ---
 training_args = TrainingArguments(
     output_dir=TrainingConfig.OUTPUT_DIR,
     num_train_epochs=3,
-    per_device_train_batch_size=4,       # 4-bit + LoRA 显存占用小，可以提高批次大小
-    gradient_accumulation_steps=4,       # 有效批次大小 = 4 * 4 = 16
-    learning_rate=2e-4,                  # QLoRA 通常使用稍大的学习率
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-4,
     logging_strategy="steps",
-    logging_steps=10,                    # 每 10 步打印一次日志
-    save_strategy="epoch",               # 每个 epoch 保存一次检查点
+    logging_steps=10,
+    save_strategy="epoch",
     dataloader_num_workers=0,
-    fp16=True,                           # QLoRA 需要开启 fp16
-    report_to="none",                    # 禁用 wandb，防止卡死
+    fp16=True,
+     # 禁用 wandb，防止卡死
+    report_to="none",
+    # --- 修改3: 解决 use_reentrant 警告 ---
+    gradient_checkpointing=True,
+    gradient_checkpointing_kwargs={'use_reentrant': False},
 )
 
 trainer = Trainer(
