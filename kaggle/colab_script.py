@@ -1,5 +1,5 @@
 # =======================================================================
-# 单元格 1: 安装最核心的库
+# Colab 适配版 - 单元格 1: 安装库
 # =======================================================================
 print("Installing core libraries: transformers, datasets, accelerate")
 !pip install -q -U transformers datasets accelerate
@@ -7,41 +7,47 @@ print("Installation complete.")
 
 
 # =======================================================================
-# 单元格 2: 登录 Hugging Face Hub (对于 distilgpt2 非必需，但保留无害)
+# Colab 适配版 - 单元格 2: 登录 Hugging Face Hub
 # =======================================================================
 import os
 from huggingface_hub import login
-from kaggle_secrets import UserSecretsClient
+from google.colab import userdata # <-- 使用 Colab 的密钥管理工具
 
 try:
-    user_secrets = UserSecretsClient()
-    hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
-    print("Hugging Face token found. Logging in...")
+    # 在 Colab 左侧边栏的“密钥”图标中，添加名为 HUGGINGFACE_TOKEN 的密钥
+    hf_token = userdata.get("HUGGINGFACE_TOKEN")
+    print("Hugging Face token found in Colab Secrets. Logging in...")
     login(token=hf_token)
     print("Login successful.")
 except Exception as e:
-    print("Could not log in to Hugging Face. Please ensure HUGGINGFACE_TOKEN is set correctly.")
+    print("Could not log in to Hugging Face. Please ensure HUGGINGFACE_TOKEN is set correctly in Colab Secrets.")
     print(f"Error: {e}")
 
 
 # =======================================================================
-# 单元格 3: 配置参数 (使用 distilgpt2 进行最终诊断)
+# Colab 适配版 - 单元格 3: 配置参数
 # =======================================================================
 class TrainingConfig:
-    # --- 使用一个极其稳定和基础的模型作为对照组 ---
     MODEL_ID = "distilgpt2"
-    DATA_FILE_PATH = "/kaggle/input/test01/training_data_for_agent.jsonl" # <-- 请务必修改为您的路径
-    # --- 修改输出目录以反映新模型 ---
-    OUTPUT_DIR = "/kaggle/working/distilgpt2_full_finetuned"
+    
+    # --- 请根据您上传文件的方式，选择并修改下面的路径 ---
+    # 方式 A: 如果您是直接上传到会话存储
+    # DATA_FILE_PATH = "/content/training_data_for_agent.jsonl"
+    
+    # 方式 B (推荐): 如果您挂载了 Google Drive
+    DATA_FILE_PATH = "/content/drive/MyDrive/Colab_Data/training_data_for_agent.jsonl"
+    
+    # Colab 的可写目录是 /content/
+    OUTPUT_DIR = "/content/distilgpt2_full_finetuned"
 
-print("Final Diagnostic Run Configuration:")
+print("Training Configuration:")
 print(f"  - Model: {TrainingConfig.MODEL_ID}")
 print(f"  - Data file: {TrainingConfig.DATA_FILE_PATH}")
 print(f"  - Output directory: {TrainingConfig.OUTPUT_DIR}")
 
 
 # =======================================================================
-# 单元格 4: 简化的训练逻辑
+# Colab 适配版 - 单元格 4: 简化的训练逻辑 (与 Kaggle 版相同)
 # =======================================================================
 import torch
 import json
@@ -62,8 +68,6 @@ tokenizer = AutoTokenizer.from_pretrained(TrainingConfig.MODEL_ID)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
-# 注意：下面的对话模板是为 Gemma 设计的，distilgpt2 会把它当作普通文本处理。
-# 这对于我们“测试训练是否能启动”的目标来说没有影响。
 def tokenize_function(examples):
     texts = []
     for prompt, tool_calls in zip(examples['prompt'], examples['tool_calls']):
@@ -83,7 +87,7 @@ print("Tokenization complete.")
 print("Loading model for full finetuning...")
 model = AutoModelForCausalLM.from_pretrained(
     TrainingConfig.MODEL_ID,
-    device_map=0, # 直接加载到 GPU 0
+    device_map="auto", # 在 Colab 中，auto 会自动选择可用的 GPU
 )
 model.resize_token_embeddings(len(tokenizer))
 print("Model prepared for training.")
@@ -91,15 +95,16 @@ print("Model prepared for training.")
 # --- 使用标准的训练参数 ---
 training_args = TrainingArguments(
     output_dir=TrainingConfig.OUTPUT_DIR,
-    num_train_epochs=1, # 只训练一个周期用于测试
-    per_device_train_batch_size=4, # distilgpt2 更小，可以尝试更大的批次
+    num_train_epochs=1,
+    per_device_train_batch_size=4,
     gradient_accumulation_steps=4,
-    learning_rate=5e-5, # 经典的微调学习率
+    learning_rate=5e-5,
     logging_strategy="steps",
-    logging_steps=1, # 每一步都打印日志
-    save_strategy="no", # 测试时无需保存
+    logging_steps=10,
+    save_strategy="no",
     dataloader_num_workers=0,
-    fp16=True,
+    fp16=True, # Colab 的 GPU 通常都支持 fp16
+    report_to="none",
 )
 
 trainer = Trainer(
