@@ -111,6 +111,7 @@ training_args = TrainingArguments(
     dataloader_num_workers=0,
     # 使用标准的 fp16 混合精度训练，这是在 GPU 上最常用、最稳定的加速方式
     fp16=True,
+    report_to="none",
 )
 
 trainer = Trainer(
