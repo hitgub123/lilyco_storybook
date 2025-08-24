@@ -43,6 +43,7 @@
  <!-- 做ai agent -->
 
 ## ollama run gemma3:1b-it-qat
+显卡是amd radeon graphics processor 0x1681，16内存，处理器是amd ryzen 7 6800hs
 
 npx wrangler pages dev ./public --port=8788
 npx next build
