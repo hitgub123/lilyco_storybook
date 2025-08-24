@@ -4,3 +4,4 @@ asset/pic/*
 *.pyc
 .vscode/**
 log/**
+model/*/**

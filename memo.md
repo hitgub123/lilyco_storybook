@@ -52,7 +52,14 @@ wandb token:2a69e4f62fe6b6784160c54e633ffdf133f3a48c
 - ollama run gemma3-4b-finetuned 
 - model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details
 
+### BUG：使用Modelfile_for_lora_model_has_bug进行create ollama模型，明明adapter_config.json存在，但始终报错Error: open adapter_config.json: The system cannot find the file specified.更换路径也没用。
+
+
 ## build
 npx wrangler pages dev ./public --port=8788
 npx next build
 npx wrangler pages deploy
+
+## wsl --install ceriac/123
+
+##
