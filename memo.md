@@ -40,11 +40,19 @@
 
  <!-- 很好，本地已经实现了利用缓存只更新部分文件的功能，这个能在github action实现吗？ -->
  <!-- 怎么用gemini cli做llm？ -->
- <!-- 做ai agent -->
 
 ## ollama run gemma3:1b-it-qat
+wandb token:2a69e4f62fe6b6784160c54e633ffdf133f3a48c
 显卡是amd radeon graphics processor 0x1681，16内存，处理器是amd ryzen 7 6800hs
+- 使用save & run all(commit)跑，并删除跟模型(/kaggle/working/f*.tar.gz)无关的文件后再下载。模型比较大，浏览器直接下载很慢，在cmd用kaggle命令下载
+- kaggle kernels output ceriac/gemma3-kaggle-train-lora -p "D:\workspace-lilyco\lilyco_storybook\model"
+- USE Modelfile to build model
+- ollama list
+- ollama create gemma3-4b-finetuned -f ./Modelfile
+- ollama run gemma3-4b-finetuned 
+- model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details
 
+## build
 npx wrangler pages dev ./public --port=8788
 npx next build
 npx wrangler pages deploy
