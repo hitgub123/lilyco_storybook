@@ -1,16 +1,5 @@
-from dotenv import load_dotenv
-import os
-import subprocess,shlex
-
-load_dotenv()
-START_BROWSER_CMD = os.getenv("START_BROWSER_CMD")
-START_BROWSER_CMD_LIST = START_BROWSER_CMD.split("@@@")
-
-result1 = subprocess.run(
-    "cd", shell=True,capture_output=True, text=True, encoding="utf-8"
-)
-result2 = subprocess.run(
-    ["node", "batch/post_stories.js"], capture_output=True, text=True, encoding="utf-8"
-)
-
-print(9)
+model_list=["phi4-mini:3.8b","mistral:7b","llama3.1:8b","gemma3-1b-lora:model-f16","gemma3-1b-lora:model-Q4_K_M"]
+s=[f'{i}:{model_list[i]}' for i in range(len(model_list))]
+i = input(f"请输入想使用的模型：{s}")
+a=int(i)
+model_list(int(i))
