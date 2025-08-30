@@ -1,0 +1,12 @@
+FROM ./model-Q4_K_M.gguf
+
+TEMPLATE """<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+"""
+
+# (可选) 设置模型参数，比如停止符
+PARAMETER stop "<start_of_turn>"
+PARAMETER stop "<end_of_turn>"
+
+#ollama create gemma3-1b-lora:model-Q4_K_M -f ./Modelfile_for_gguf_model-Q4_K_M

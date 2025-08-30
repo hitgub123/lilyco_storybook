@@ -45,7 +45,7 @@
 wandb token:2a69e4f62fe6b6784160c54e633ffdf133f3a48c
 显卡是amd radeon graphics processor 0x1681，16内存，处理器是amd ryzen 7 6800hs
 - 使用save & run all(commit)跑，并删除跟模型(/kaggle/working/f*.tar.gz)无关的文件后再下载。模型比较大，浏览器直接下载很慢，在cmd用kaggle命令下载
-- kaggle kernels output ceriac/gemma3-kaggle-train-lora -p "D:\workspace-lilyco\lilyco_storybook\model"
+- 下载output：kaggle kernels output ceriac/gemma3-kaggle-train-lora -p "D:\workspace-lilyco\lilyco_storybook\model"
 - USE Modelfile to build model
 - ollama list
 - ollama create gemma3-4b-finetuned -f ./Modelfile
@@ -53,7 +53,7 @@ wandb token:2a69e4f62fe6b6784160c54e633ffdf133f3a48c
 - model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details
 
 ### BUG：使用Modelfile_for_lora_model_has_bug进行create ollama模型，明明adapter_config.json存在，但始终报错Error: open adapter_config.json: The system cannot find the file specified.更换路径也没用。
-
+- ollama create gemma3-4b-lora-finetuned -f ./Modelfile
 
 ## build
 npx wrangler pages dev ./public --port=8788
@@ -62,4 +62,17 @@ npx wrangler pages deploy
 
 ## wsl --install ceriac/123
 
-##
+## 量化时报错找不到quantize或者llama-quantize
+- !git clone https://github.com/ggerganov/llama.cpp.git
+- !pip install -r llama.cpp/requirements.txt
+- !cd llama.cpp && git pull && make clean > /dev/null 2>&1 && mnake all -j && LLAMA_CUBLAS=1 make
+    
+### 然后二选一，执行方法1
+- !(cd llama.cpp; cmake -B build;cmake --build build --config Release)
+- !cp llama.cpp/build/bin/llama-quantize llama.cpp/
+    
+### 或者执行方法2。这里需要把llama-quantize放进kaggle dataset并作为input传入。llama-quantize可以由方法1获得
+- !cp /kaggle/input/llama-quantize/llama-quantize ./llama.cpp/
+- !chmod +x ./llama.cpp/llama-quantize
+    
+  

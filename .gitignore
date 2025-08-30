@@ -4,4 +4,6 @@ asset/pic/*
 *.pyc
 .vscode/**
 log/**
-model/*/**
+model/**/*.model
+model/*.gguf
+model/Modelfile_for_gguf_gemma3-1b-it_model-f16

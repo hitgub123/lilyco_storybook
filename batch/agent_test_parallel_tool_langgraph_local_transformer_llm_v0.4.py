@@ -67,14 +67,14 @@ def end_a_day() -> str:
 @tool
 @inject_tool_name
 def buy_water() -> str:
-    """买水"""
+    """买水。如果有人需要喝的，或者需要用水，就调用这个方法"""
     pass
 
 
 @tool
 @inject_tool_name
 def buy_instant_noodle() -> str:
-    """买泡面"""
+    """买泡面。如果有人需要吃的，就调用这个方法"""
     pass
 
 

@@ -63,14 +63,14 @@ def end_a_day() -> str:
 @tool
 @inject_tool_name
 def buy_water() -> str:
-    """买水"""
+    """买水。如果有人需要喝的，或者需要用水，就调用这个方法"""
     pass
 
 
 @tool
 @inject_tool_name
 def buy_instant_noodle() -> str:
-    """买泡面"""
+    """买泡面。如果有人需要吃的，就调用这个方法"""
     pass
 
 
@@ -80,8 +80,9 @@ def goto_hospital() -> str:
     """去医院看望病人，返回值是部门的列表，表示哪些部门有病人，
     比如返回['销售','开发']表示销售部和开发部有病人"""
     # return ['C']
-    return ["C", "A"]
-    # return []
+    # return ['C','A']
+    return []
+
 
 
 def create_agent(llm):
@@ -117,6 +118,8 @@ if __name__ == "__main__":
     # model="gemma3:1b-it-qat"  #do not support function calling
     # model = "allenporter/xlam:1b" # can only answer computer questions
     model = "phi4-mini:3.8b"
+    # model = "gemma3-1b-lora:model-f16"
+    # model = "gemma3-1b-lora:model-Q4_K_M"
     llm = ChatOllama(model=model, temperature=0)
     agent = create_agent(llm)
     chat_history = []

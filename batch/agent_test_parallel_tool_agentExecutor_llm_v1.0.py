@@ -64,14 +64,14 @@ def end_a_day() -> str:
 @tool
 @inject_tool_name
 def buy_water() -> str:
-    """买水"""
+    """买水。如果有人需要喝的，或者需要用水，就调用这个方法"""
     pass
 
 
 @tool
 @inject_tool_name
 def buy_instant_noodle() -> str:
-    """买泡面"""
+    """买泡面。如果有人需要吃的，就调用这个方法"""
     pass
 
 
@@ -122,6 +122,7 @@ if __name__ == "__main__":
     )
     agent = create_agent(llm)
     chat_history = []
+    # 我们代表公司去医院看望病人，去之前要买吃的和喝的。看望病人后，我们能知道哪些部门由病人，接下来我们要通知这些部门，如果没有病人就不用通知。最后我们才能打卡下班。
     while 1:
         prompt = input("请输入今天的任务：\n")
         if prompt == "q":
