@@ -1,22 +1,20 @@
 import torch
-from diffusers import FluxKontextPipeline
-from diffusers.utils import load_image
+from diffusers import StableDiffusion3Pipeline
 
-from nunchaku import NunchakuFluxTransformer2dModel
-from nunchaku.utils import get_precision
-
-transformer = NunchakuFluxTransformer2dModel.from_pretrained(
-    f"nunchaku-tech/nunchaku-flux.1-kontext-dev/svdq-{get_precision()}_r32-flux.1-kontext-dev.safetensors"
+pipe = StableDiffusion3Pipeline.from_pretrained(
+    "tensorart/stable-diffusion-3.5-medium-turbo",
+    torch_dtype=torch.float16,
 )
 
-pipeline = FluxKontextPipeline.from_pretrained(
-    "black-forest-labs/FLUX.1-Kontext-dev", transformer=transformer, torch_dtype=torch.bfloat16
-).to("cuda")
+# pipe = pipe.to("cuda")
 
-image = load_image(
-    "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/yarn-art-pikachu.png"
-).convert("RGB")
 
-prompt = "Make Pikachu hold a sign that says 'Nunchaku is awesome', yarn art style, detailed, vibrant colors"
-image = pipeline(image=image, prompt=prompt, guidance_scale=2.5).images[0]
-image.save("flux-kontext-dev.png")
+image = pipe(
+    "A beautiful bald girl with silver and white futuristic metal face jewelry, her full body made of intricately carved liquid glass in the style of Tadashi, the complexity master of cyberpunk, in the style of James Jean and Peter Mohrbacher. This concept design is trending on Artstation, with sharp focus, studio-quality photography, and highly detailed, intricate details.",
+    num_inference_steps=8,
+    guidance_scale=1.5,
+    height=1024,
+    width=768,
+).images[0]
+
+image.save("./test4-2.webp")
