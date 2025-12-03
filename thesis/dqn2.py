@@ -303,7 +303,7 @@ class BrainDQNMain(object):
             state = "explore"
         else:
             state = "train"
-        if self.timeStep % 100 == 0:
+        if self.timeStep % 10 == 0:
             print(
                 "TIMESTEP", self.timeStep, "/ STATE", state, "/ EPSILON", self.epsilon
             )
