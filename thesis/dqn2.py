@@ -2,6 +2,7 @@ import pdb
 import cv2
 import sys
 import os
+import time
 
 # sys.path.append("game/")
 os.chdir(r"D:/workspace-lilyco/lilyco_storybook/thesis")
@@ -86,7 +87,12 @@ class BrainDQNMain(object):
         torch.save(self.Q_net.state_dict(), "params3.pth")
         # also save a full checkpoint for reliable resume
         self.save_checkpoint("checkpoint.pth")
-        self.writer.flush()
+        try:
+            # flush pending events to disk so TensorBoard can see them quickly
+            if getattr(self, "writer", None) is not None:
+                self.writer.flush()
+        except Exception:
+            pass
 
     def save_checkpoint(self, path="checkpoint.pth"):
         tmp = path + ".tmp"
@@ -155,9 +161,18 @@ class BrainDQNMain(object):
         # increase LR slightly to speed learning on CPU (monitor for instability)
         LR = 5e-4
         self.optimizer = torch.optim.Adam(self.Q_net.parameters(), lr=LR)
+        # create SummaryWriter early so save()/save_checkpoint() can safely use it
+        log_dir = os.path.join("runs", "dqn_experiment_" + str(int(time.time())))
+        try:
+            self.writer = SummaryWriter(log_dir=log_dir, flush_secs=10)
+        except Exception:
+            # fallback to default constructor if any issue
+            try:
+                self.writer = SummaryWriter()
+            except Exception:
+                self.writer = None
         # attempt to load checkpoint after optimizer exists
         self.load()
-        self.writer = SummaryWriter("runs/dqn_experiment")
         # track cumulative reward for current episode
         self.episode_reward = 0.0
         # best reward observed (for saving best model)
@@ -374,7 +389,7 @@ if __name__ == "__main__":
     print(brain.currentState.shape)  # Step 3.2: run the game
 
     try:
-        while 1 != 0:
+        while True:
             action = brain.getAction()
             nextObservation, reward, terminal = flappyBird.frame_step(action)
             nextObservation = preprocess(nextObservation)
@@ -389,10 +404,6 @@ if __name__ == "__main__":
                 print("Play mode detected — not saving checkpoint.")
         except Exception:
             pass
-        try:
-            brain.writer.close()
-        except Exception:
-            pass
     except Exception as e:
         print("Exception occurred:", e)
         try:
@@ -400,7 +411,9 @@ if __name__ == "__main__":
                 brain.save_checkpoint("checkpoint.pth")
         except Exception:
             pass
+    finally:
         try:
-            brain.writer.close()
+            if getattr(brain, "writer", None) is not None:
+                brain.writer.close()
         except Exception:
             pass

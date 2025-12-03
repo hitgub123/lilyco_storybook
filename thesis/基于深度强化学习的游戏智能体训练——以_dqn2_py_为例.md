@@ -136,6 +136,8 @@
 
 说明 save_checkpoint 的原子写入实现（写临时文件再替换）、保存内容（模型参数、目标模型参数、优化器状态、timeStep、epsilon、best_reward）以及使用 TensorBoard 记录 loss、reward、epsilon 与 Q 值等指标，便于训练过程监控与调试。
 
+此外，针对代码更新，TensorBoard 写入逻辑做了工程化改进：SummaryWriter 在类初始化阶段尽早创建并使用一个带时间戳的日志目录（例如 `runs/dqn_experiment_<timestamp>`），避免不同次运行的日志被覆盖并便于定位；创建时使用 `flush_secs` 参数（脚本中设为 10 秒）以周期性将事件刷新到磁盘；在保存模型时显式调用 `writer.flush()`，在程序退出（finally）处调用 `writer.close()`，确保所有事件被写入并可被 TensorBoard 及时读取。实现中也对 SummaryWriter 的创建做了降级容错（若创建失败则回退到默认构造或置为 None，并在写入处检查 writer 是否存在），以提高在不同环境下的鲁棒性。
+
 4.8 代码实现中值得注意的细节与潜在问题
 
 - epsilon 退火 BUG：`dqn2.py` 中 INITIAL_EPSILON 与 FINAL_EPSILON 都设置为 0.0001，且 epsilon 的减量计算是 (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE，因此在当前数值下 epsilon 不会发生变化。该问题会导致几乎无探索，从而使智能体陷入非常差的局部策略。工程上应把 INITIAL_EPSILON 设为较大值（如 1.0）并采用线性或分段退火。
@@ -148,11 +150,7 @@
 
 - replay 保存策略：当前代码注释掉了将 replay 缓冲保存到 checkpoint 的选项。对于极长训练，保存并恢复回放缓冲有助于保留稀有但重要的样本，提高恢复后的训练效率，但需要权衡序列化大小与 I/O 成本。
 
-  4.9 训练数值稳定性建议
-
-- 梯度裁剪：在 loss.backward() 后加入 torch.nn.utils.clip*grad_norm*(model.parameters(), max_norm) 可以限制梯度范数，避免偶发的大梯度导致权重发散。
-- 学习率调度：引入 lr_scheduler（如 ReduceLROnPlateau 或 CosineAnnealing）有助于后期收敛。
-- 正则化：可在全连接层加入 dropout 或 L2 权重衰减以减缓过拟合（在游戏中通常表现为对训练分布的过度拟合）。
+- 日志与 TensorBoard 相关的工程改进：在本次代码更新中修复并增强了日志写入的可靠性，包括：在类构造函数中尽早创建 `SummaryWriter`（并使用时间戳目录），在写入处对 `writer` 做存在性检查以避免异常中断训练流程，保存模型时显式 flush，程序结束时保证 close。原先代码中可能存在的孤立标记（比如意外残留的 `writer` 或不完整行）也已清理，避免运行时语法或名称错误。
 
 第 5 章 实验设计与评估指标
 
@@ -292,6 +290,7 @@
 
 - 文件位置：`thesis/dqn2.py`（核心训练脚本）
 - 关键函数与类：`preprocess`, `DeepNetWork`, `BrainDQNMain.train`, `BrainDQNMain.setPerception`, `BrainDQNMain.save_checkpoint`。
+- 新增/更新要点：`BrainDQNMain.__init__` 中尽早创建 `SummaryWriter` 并使用 `log_dir` 带时间戳（`runs/dqn_experiment_<timestamp>`），`save()` 中显式调用 `writer.flush()`，脚本退出时在 finally 中 `writer.close()`，并对 `SummaryWriter` 的创建做降级处理以提高鲁棒性。
 - 推荐改进实现提示：将 REPLAY_MEMORY、BATCH_SIZE、LR、INITIAL_EPSILON 等参数外置为配置文件并在日志中记录每次实验配置。
 
 附录 B：实验运行环境与复现步骤
@@ -299,7 +298,12 @@
 1. 环境准备：安装 Python 3.8+，安装依赖：PyTorch（与 CUDA 版本对应）、opencv-python、numpy、tensorboard。
 2. 代码位置：将 `wrapped_flappy_bird` 放在 `thesis/game/` 并确保 `dqn2.py` 顶部路径设置正确（或修改 sys.path）。
 3. 启动训练：在 `thesis` 目录运行 `python dqn2.py`。
-4. 观察训练：启动 tensorboard 并指向 `runs/dqn_experiment` 目录以查看指标。
+4. 观察训练：启动 tensorboard 并指向 `runs` 目录（脚本会在 `runs/` 下创建 `dqn_experiment_<timestamp>` 子目录），例如在 PowerShell 中运行：
+
+   tensorboard --logdir runs --bind_all
+
+   然后在浏览器打开 http://localhost:6006/ 查看 `loss`、`reward`、`epsilon` 等指标。如果使用 TensorBoard 指向某个特定子目录也可，例如 `--logdir runs/dqn_experiment_1600000000`。
+
 5. 恢复训练：若存在 `checkpoint.pth`，脚本在初始化时会尝试加载以恢复状态。
 
 （全文完）
