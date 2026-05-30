@@ -1,27 +1,29 @@
+import fs from 'fs/promises'; // 导入 Node.js 文件系统模块
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import path from 'path'; // 导入 Node.js 路径模块
 import { useEffect, useRef } from 'react';
 import Modal from '../../components/Modal';
 import cloudinary from '../../utils/cloudinary';
 import getBase64ImageUrl from '../../utils/generateBlurPlaceholder';
 import type { ImageProps } from '../../utils/types';
 import { useLastViewedPhoto } from '../../utils/useLastViewedPhoto';
-const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
+const ComicContent: NextPage = ({ images, story }: { images: ImageProps[]; story: string }) => {
 	const router = useRouter();
 	const slug = router.query.slug;
 
-	// console.log('slug', slug);
-	console.log('images', images);
+	// console.log('images', images);
 
+	// console.log('slug', slug);
 	const photoId = slug ? slug[0] : '';
 	const subId = slug ? slug[1] : '';
 	// console.log('subId', subId, 'photoId', photoId);
 
 	const [lastViewedPhoto, setLastViewedPhoto] = useLastViewedPhoto();
-
+	// const [story, setStory] = useState('hello story');
 	const lastViewedPhotoRef = useRef<HTMLAnchorElement>(null);
 
 	useEffect(() => {
@@ -37,32 +39,36 @@ const ComicContent: NextPage = ({ images }: { images: ImageProps[] }) => {
 			<Head>
 				<title>Comic Page</title>
 			</Head>
-			{!images.length && (
-				<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
-					<div className="absolute inset-0 flex items-center justify-center opacity-20">
-						<span className="absolute left-0 right-0 bottom-0 h-[400px] bg-gradient-to-b from-black/0 via-black to-black"></span>
-					</div>
-
-					<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">Comic Page</h1>
-					<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">No storybook found!</p>
-				</div>
-			)}
 			<main className="mx-auto max-w-[1960px] p-4">
-				{/* {subId && /^\d+$/.test(subId) && ( */}
-				{subId && (
-					<Modal
-						images={images}
-						protoId={photoId}
-						onClose={() => {
-							setLastViewedPhoto(Number(subId));
-						}}
-					/>
-				)}
 				<div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
-					{images.map(({ id, public_id, format, blurDataUrl }) => (
+					<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
+						<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">STORY Description</h1>
+						<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">{story}</p>
+					</div>
+					{!images.length && (
+						<div className="after:content shadow-highlight after:shadow-highlight relative mb-5 flex h-[256px] flex-col items-center justify-end gap-4 overflow-hidden rounded-lg bg-white/10 px-6 pb-16 pt-64 text-center text-white after:pointer-events-none after:absolute after:inset-0 after:rounded-lg lg:pt-0">
+							<div className="absolute inset-0 flex items-center justify-center opacity-20">
+								<span className="absolute left-0 right-0 bottom-0 h-[400px] bg-gradient-to-b from-black/0 via-black to-black"></span>
+							</div>
+
+							<h1 className="mt-8 mb-4 text-base font-bold uppercase tracking-widest">Comic Page</h1>
+							<p className="max-w-[40ch] text-white/75 sm:max-w-[32ch]">No storybook found!</p>
+						</div>
+					)}
+
+					{subId && (
+						<Modal
+							images={images}
+							protoId={photoId}
+							onClose={() => {
+								setLastViewedPhoto(Number(subId));
+							}}
+						/>
+					)}
+					{images.map(({ id, public_id, public_id_1, format, blurDataUrl }) => (
 						<Link
 							key={id}
-							href={`/p/${photoId}/${id}`}
+							href={`/p/${public_id_1}/${id}`}
 							ref={id === Number(lastViewedPhoto) ? lastViewedPhotoRef : null}
 							shallow
 							className="after:content after:shadow-highlight group relative mb-5 block w-full cursor-pointer after:pointer-events-none after:absolute after:inset-0 after:rounded-lg"
@@ -104,11 +110,35 @@ export async function getStaticProps(context: any) {
 			},
 		};
 	}
+	let a = 'No story content found!';
+	try {
+		const url = `http://localhost:8788/api/story?index=${index}`;
+		// const url = `http://localhost:8788/api/story`;
+		// const b = await fetch(url, {
+		// 	method: 'POST',
+		// 	headers: {
+		// 		'Content-Type': 'application/json',
+		// 	},
+		// 	body: JSON.stringify({
+		// 		index: index,
+		// 	}),
+		// });
+		// console.log('index', index);
+		const b = await fetch(url);
+		// console.log('b', b);
+		const c = await b.json();
+		// console.log('c', c);
+		a = c?.title;
+		// console.log('a', a);
+
+	} catch (e) {
+		console.error(e);
+	}
 	// console.log('context.params', context.params);
 	const results = await cloudinary.v2.search
 		.expression(`folder:${process.env.CLOUDINARY_FOLDER}/${index}`)
 		// .expression(`folder:={process.env.CLOUDINARY_FOLDER}`)
-		.sort_by('public_id', 'desc')
+		.sort_by('public_id', 'asc')
 		.max_results(100)
 		.execute();
 	let reducedResults: ImageProps[] = [];
@@ -120,6 +150,8 @@ export async function getStaticProps(context: any) {
 			height: result.height,
 			width: result.width,
 			public_id: result.public_id,
+			// comic1/a/a-b → a
+			public_id_1: result.public_id.split('/')[1],
 			format: result.format,
 		});
 		i++;
@@ -137,21 +169,48 @@ export async function getStaticProps(context: any) {
 	return {
 		props: {
 			images: reducedResults,
+			story: a,
 		},
 	};
 }
 
 export async function getStaticPaths() {
+	const BUILD_CACHE_DIR = path.join(process.cwd(), 'out-1', 'p');
+	// console.log('BUILD_CACHE_DIR', BUILD_CACHE_DIR);
+	let existingSlugs = new Set(); // 使用 Set 存储已存在的 slug，方便快速查找
+
+	// 尝试读取缓存目录中的文件
+	const files = await fs.readdir(BUILD_CACHE_DIR);
+	for (const file of files) {
+		// 检查文件是否是 HTML 文件
+		if (file.endsWith('.html')) {
+			// 从文件名中提取 slug (例如 '1.html' -> '1')
+			const slug = path.basename(file, '.html');
+			existingSlugs.add(slug);
+		}
+	}
+	// console.log('files', files);
+	// console.log('existingSlugs', existingSlugs);
 	let fullPaths = [];
 
 	const results = await cloudinary.v2.api.sub_folders(process.env.CLOUDINARY_FOLDER);
 	const folders = results.folders;
+	// console.log('folders', folders);
 	for (let i = 0; i < folders.length; i++) {
-		fullPaths.push({ params: { slug: [folders[i].name] } });
+		let name = folders[i].name;
+		// if (!existingSlugs.has(name)) {
+		if (true) {
+			fullPaths.push({ params: { slug: [name] } });
+		}
 	}
+	// for(let i = 0; i < fullPaths.length; i++) {
+	// 	console.log(`fullPaths[${i}}=`, fullPaths[i]);
+	// }
+
 	return {
 		paths: fullPaths,
-		fallback: false,
+		// fallback: false,
+		fallback: 'blocking',
 	};
 	// return {
 	// 	paths: [

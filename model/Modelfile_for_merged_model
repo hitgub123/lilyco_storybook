@@ -1,0 +1,18 @@
+# 从你本地的模型文件夹加载基础模型
+# 请确保这里的路径指向你刚刚解压出来的文件夹
+# 文件夹的内容是训练后的模型与原模型merge得到的新模型
+# 一般不用merge，所以不推荐此方法
+# FROM ./google_gemma-3-4b-it_qlora_finetuned
+FROM ./finetuned_google_gemma-3-1b-it
+# 设置提示词模板，这是让模型支持 Function Calling 的核心
+# 这个模板必须严格匹配你训练时使用的数据格式！
+TEMPLATE """<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+"""
+
+# (可选) 设置模型参数，比如停止符
+PARAMETER stop "<start_of_turn>"
+PARAMETER stop "<end_of_turn>"
+
+#ollama create gemma3-4b-finetuned -f ./Modelfile

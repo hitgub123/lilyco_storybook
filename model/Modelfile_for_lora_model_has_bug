@@ -1,0 +1,19 @@
+FROM gemma3:1b
+
+# 2. 指向唯一的 LoRA 权重文件
+# ADAPTER ./adapter_model.safetensors
+ADAPTER "./finetuned_google_gemma-3-1b-it/adapter_model.safetensors"
+
+# 设置提示词模板，这是让模型支持 Function Calling 的核心
+# 这个模板必须严格匹配你训练时使用的数据格式！
+TEMPLATE """<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+"""
+
+# (可选) 设置模型参数，比如停止符
+PARAMETER stop "<start_of_turn>"
+PARAMETER stop "<end_of_turn>"
+
+#ollama create gemma3-4b-lora-finetuned -f ./Modelfile
+#error : Error: open adapter_config.json: The system cannot find the file specified.

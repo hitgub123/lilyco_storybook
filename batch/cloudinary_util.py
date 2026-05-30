@@ -1,11 +1,13 @@
-import shutil, os, glob
+import shutil, os, glob, re
 from collections import defaultdict
-import cloudinary
+import cloudinary, datetime
 import cloudinary.api
 import cloudinary.uploader
 from dotenv import load_dotenv
+from logger_config import get_logger
 
 load_dotenv()
+logger = get_logger(__name__)
 
 # --- 配置 ---
 # 从环境变量读取 Cloudinary 凭证 (这将由 GitHub Action 传入)
@@ -16,30 +18,37 @@ cloudinary.config(
 )
 
 # 本地文件路径 (相对于项目根目录)
-NOTDONE_PATH = "asset/pic/not_done"
-DONE_PATH = "asset/pic/done"
-DONE_MD_PATH = "asset/done.md"
+NOTDONE_PATH = os.getenv("NOTDONE_PATH")
+DONE_PATH = os.getenv("DONE_PATH")
+DONE_MD_PATH = os.getenv("DONE_MD_PATH")
+DONE_MD_PREFIX = os.getenv("DONE_MD_PREFIX")
 CLOUDINARY_ROOT_FOLDER = os.getenv("CLOUDINARY_FOLDER")
 
 max_results = 1000
 
+
 def get_cloudinary_comic_count():
     """获取 Cloudinary comic 根目录下的所有文件名"""
-    print(f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表...")
+    logger.debug(
+        f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表..."
+    )
 
     resources = cloudinary.api.resources_by_asset_folder(
         "comic1", max_results=max_results
     )
     return len(resources.get("resources", []))
 
+
 def get_cloudinary_comic_covers():
     """获取 Cloudinary comic 根目录下的所有文件名"""
-    print(f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表...")
+    logger.debug(
+        f"正在从 Cloudinary 的 '{CLOUDINARY_ROOT_FOLDER}' 文件夹获取文件列表..."
+    )
 
     resources = cloudinary.api.resources_by_asset_folder(
         "comic1", max_results=max_results
     )
-    
+
     # 我们只关心在 comic1 根目录下的文件, 形如 "comic1/a-1.jpg"
     # 排除子文件夹里的文件, 形如 "comic1/a/a-1.jpg"
     cover_files = set()
@@ -52,64 +61,152 @@ def get_cloudinary_comic_covers():
         # cover_files.add(filename)
         display_name = res.get("display_name")
         cover_files.add(display_name)
-    print(f"找到 {len(cover_files)} 个封面文件。")
+    logger.debug(f"找到 {len(cover_files)} 个封面文件。")
     return cover_files
 
 
 def group_local_files():
     """分组本地 notdone 文件夹中的图片"""
-    print(f"正在扫描本地文件夹: {NOTDONE_PATH}")
-    local_files = glob.glob(os.path.join(NOTDONE_PATH, "*.*"))
-    grouped = defaultdict(list)
-    for f in local_files:
-        # 从文件名 "a-b.jpg" 中提取 "a" 作为组名
-        group_name = os.path.basename(f).split("-")[0]
-        grouped[group_name].append(f)
-    print(f"找到 {len(grouped)} 个本地图片组。")
+    logger.debug(f"正在扫描本地文件夹: {NOTDONE_PATH}")
+    local_folds = glob.glob(os.path.join(NOTDONE_PATH, "*"))
+    grouped = {}
+    for f in local_folds:
+        local_files = glob.glob(os.path.join(f, "*"))
+        # group_name = os.path.basename(f)
+        # grouped[group_name] = local_files
+        grouped[f] = local_files
+    logger.debug(f"找到 {len(grouped)} 个本地图片组。")
     return grouped
 
 
-def move_group_to_done(group_files):
+def move_group_folder_to_done(group_name_full, group_name):
+    """将一组文件的文件夹移动到 done 文件夹"""
+    if not os.path.exists(DONE_PATH):
+        os.makedirs(DONE_PATH)
+    logger.debug(f"  移动文件夹: {group_name_full} -> {DONE_PATH}")
+    shutil.move(group_name_full, DONE_PATH)
+
+
+def move_group_to_done(group_files, group_name):
     """将一组文件移动到 done 文件夹"""
     if not os.path.exists(DONE_PATH):
         os.makedirs(DONE_PATH)
+    target_fold = os.path.join(DONE_PATH, group_name)
+    if not os.path.exists(target_fold):
+        os.makedirs(target_fold)
     for f in group_files:
-        print(f"  移动文件: {os.path.basename(f)} -> {DONE_PATH}")
-        shutil.move(f, os.path.join(DONE_PATH, os.path.basename(f)))
+        logger.debug(f"  移动文件: {os.path.basename(f)} -> {target_fold}")
+        shutil.move(f, os.path.join(target_fold, os.path.basename(f)))
+
+
+def multi_rename_remote_cloudinary_assets():
+    """
+    Renames folders and files in Cloudinary according to the specified rules.
+    - Folders are padded with leading zeros to 4 digits.
+    - Filenames are padded to the format XXXX-YYY.jpg.
+    """
+    # Get all assets. You might need to handle pagination for large number of assets.
+    # This example gets up to 500 assets.
+    # To get all assets, you will need to use the `next_cursor` for pagination.
+    response = cloudinary.api.resources(type="upload", max_results=500)
+    assets = response.get("resources", [])
+
+    # To fetch all assets, you can use a loop like this:
+    # next_cursor = response.get('next_cursor')
+    # while next_cursor:
+    #     response = cloudinary.api.resources(type="upload", max_results=500, next_cursor=next_cursor)
+    #     assets.extend(response.get('resources', []))
+    #     next_cursor = response.get('next_cursor')
+
+    for asset in assets:
+        public_id = asset["public_id"]
+
+        # This regex assumes a folder structure like "folder_number/file_number-file_number"
+        # e.g. "29/9-13"
+        match = re.match(r"([1-9a-z]+\/)(\d+)/(\d+)-(\d+)", public_id)
+
+        if match:
+            prefie = match.group(1)
+            folder_num_str = match.group(2)
+            file_num1_str = match.group(3)
+            file_num2_str = match.group(4)
+
+            # New names with padding
+            new_folder = f"{int(folder_num_str):04d}"
+            new_filename_part1 = f"{int(file_num1_str):04d}"
+            new_filename_part2 = f"{int(file_num2_str):03d}"
+
+            new_public_id = (
+                f"{prefie}{new_folder}/{new_filename_part1}-{new_filename_part2}"
+            )
+            new_display_name = (
+                f"{new_filename_part1}-{new_filename_part2}.{asset['format']}"
+            )
+
+            if public_id != new_public_id:
+                print(f"Renaming {public_id} to {new_public_id}@{new_display_name}")
+                try:
+                    cloudinary.uploader.rename(public_id, new_public_id)
+                    cloudinary.api.update(new_public_id, display_name=new_display_name)
+                except Exception as e:
+                    print(f"Error renaming {public_id}: {e}")
+        else:
+            match2 = re.match(r"([1-9a-z]+\/)(\d+)", public_id)
+            prefie = match2.group(1)
+            file_num1_str = match2.group(2)
+
+            new_filename_part1 = f"{int(file_num1_str):04d}"
+
+            new_public_id = f"{prefie}{new_filename_part1}"
+            new_display_name = f"{new_filename_part1}.{asset['format']}"
+            if public_id != new_public_id:
+                print(f"Renaming {public_id} to {new_public_id}@{new_display_name}")
+                try:
+                    cloudinary.uploader.rename(public_id, new_public_id)
+                    cloudinary.api.update(new_public_id, display_name=new_display_name)
+                except Exception as e:
+                    print(f"Error renaming {public_id}: {e}")
 
 
 def main():
-    only_count=True
-    cloudinary_comic_count,cloudinary_covers=0,[]
+    only_count = True
+    cloudinary_comic_count, cloudinary_covers = 0, []
+    local_groups = group_local_files()
+
+    with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
+        md_file.write(f"\n{DONE_MD_PREFIX}{datetime.datetime.now()}\n")
+
+    if not len(local_groups):
+        return
+
     if only_count:
-        cloudinary_comic_count = get_cloudinary_comic_count()
+        # cloudinary_comic_count = get_cloudinary_comic_count()
+        cloudinary_comic_count = 0
     else:
         cloudinary_covers = get_cloudinary_comic_covers()
 
-    local_groups = group_local_files()
-
-    for group_name, files in local_groups.items():
-        print(f"\n--- 正在处理组: {group_name} ---")
+    for group_name_full, files in local_groups.items():
+        group_name = os.path.basename(group_name_full)
+        logger.debug(f"\n--- 正在处理组: {group_name} ---")
 
         # 判断封面是否已存在于 Cloudinary
-        # 检查是否有任何一个 Cloudinary 封面文件名是以 "group_name-" 开头的
         if only_count:
-            is_uploaded = group_name > cloudinary_comic_count
+            is_uploaded = int(group_name) <= cloudinary_comic_count
         else:
             is_uploaded = group_name in cloudinary_covers
 
-        if is_uploaded:
-            print(f"组 '{group_name}' 的封面已存在于 Cloudinary。跳过上传。")
-            move_group_to_done(files)
+        if is_uploaded or not len(files):
+            logger.debug(f"组 '{group_name}' 的封面已存在于 Cloudinary。跳过上传。")
+            # move_group_to_done(files,group_name)
             continue
 
         # --- 如果不存在，执行上传逻辑 ---
-        print(f"组 '{group_name}' 不存在于 Cloudinary。开始上传...")
+        logger.debug(f"组 '{group_name}' 不存在于 Cloudinary。开始上传...")
 
         # 1. 上传封面 (组里的第一个文件) 到 comic1 根目录
         cover_file = sorted(files)[0]
         cover_filename = os.path.basename(cover_file)
-        print(f"  1. 上传封面 '{cover_filename}' 到 '{CLOUDINARY_ROOT_FOLDER}'")
+        logger.debug(f"  1. 上传封面 '{cover_filename}' 到 '{CLOUDINARY_ROOT_FOLDER}'")
         cloudinary.uploader.upload(
             cover_file,
             folder=CLOUDINARY_ROOT_FOLDER,
@@ -119,25 +216,60 @@ def main():
 
         # 2. 上传所有文件到 comic1/group_name 子文件夹
         subfolder = f"{CLOUDINARY_ROOT_FOLDER}/{group_name}"
-        print(f"  2. 上传 {len(files)} 个文件到子文件夹 '{subfolder}'")
-        for f in files:
+        logger.debug(f"  2. 上传 {len(files)} 个文件到子文件夹 '{subfolder}'")
+        for f in files[1:]:
             filename = os.path.basename(f)
-            print(f"    - 上传 {filename}")
+            logger.debug(f"    - 上传 {filename}")
             cloudinary.uploader.upload(
                 f, folder=subfolder, public_id=os.path.splitext(filename)[0]
             )
 
-        # 3. 更新 done.md
-        print(f"  3. 更新 '{DONE_MD_PATH}' 文件")
+        # 3. 移动本地文件
+        logger.debug("  4. 移动本地文件到完成目录")
+        move_group_folder_to_done(group_name_full, group_name)
+
+        # 4. 更新 done.md
+        logger.debug(f"  3. 更新 '{DONE_MD_PATH}' 文件")
         with open(DONE_MD_PATH, "a", encoding="utf-8") as md_file:
-            md_file.write(f"- {group_name}\n")
+            md_file.write(f"{group_name},")
 
-        # 4. 移动本地文件
-        print("  4. 移动本地文件到完成目录")
-        move_group_to_done(files)
+        logger.debug(f"--- 组 '{group_name}' 处理完成 ---")
 
-        print(f"--- 组 '{group_name}' 处理完成 ---")
+def update_task_record(tm=None):
+    with open(DONE_MD_PATH, "r", encoding="utf-8") as f:
+        lines = f.readlines()[-2:]
+        line = lines[-1].replace("\n", "")
+        if not line:
+            line = lines[-2].replace("\n", "")
+        if not line.startswith(DONE_MD_PREFIX):
+            if line[-1] == ",":
+                line = line[:-1]
 
+            uploaded_list = line.split(",")
+            uploaded_list = [int(i) for i in uploaded_list]
+            from task_manager import Task_manager
+
+            if not tm:
+                tm = Task_manager()
+            tasks = tm.read_df_from_csv()
+            uncomplete_task = tasks.query(
+                "is_target == 1 and generate_storybook==1 and upload_storybook != 1"
+            )
+            uncomplete_set = set(uncomplete_task.id)
+            uploaded_set = set(uploaded_list)
+            logger.info(
+                f"未上传的task id是{uncomplete_set}，本次上传成功{uploaded_set}"
+            )
+            if not uploaded_set.issubset(uncomplete_set):
+                logger.warning(f"本次上传成功的数据状态可能不对，请确认")
+            target_index = tasks["id"].isin(uploaded_list)
+            tasks.loc[target_index, "upload_storybook"] = 1
+            # tasks.loc[target_index, "is_target"] = 1
+
+            tm.update_task(tasks)
+            return uploaded_list
 
 if __name__ == "__main__":
+    # multi_rename_remote_cloudinary_assets()
     main()
+    update_task_record()

@@ -1,0 +1,98 @@
+<VSCode.Notebook>
+    <VSCode.Cell language="markdown">
+        Kaggle Notebook：在 Kaggle 上运行 thesis/dqn.py 的完整步骤（可复制运行）。按需选择“用 Dataset 上传项目”或“git clone
+        仓库”。执行 cell 顺序：1 → 2 → ... → 最后运行训练脚本。若需要我可以把这个 notebook 直接生成到你的仓库中。
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 1.（可选）安装依赖 —— 在 Kaggle Notebook 的 Python cell 中运行
+        # 如果 Kaggle 已内置 TensorFlow，可删除或调整 tensorflow 版本
+        !pip install -q tensorflow==2.12 opencv-python-headless pyvirtualdisplay pygame
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 2. 启动 headless 显示（必须在训练前运行）
+        from pyvirtualdisplay import Display
+        display = Display(visible=0, size=(1400,900))
+        display.start()
+        print("虚拟显示已启动")
+    </VSCode.Cell>
+
+    <VSCode.Cell language="markdown">
+        可选：将代码放到 Notebook 可访问位置
+        - 方式 A（推荐）：在 Kaggle 的 "Add data" 上传整个项目（包含 thesis/dqn.py 与 game/ 文件夹），Notebook 中挂载后使用下面的拷贝
+        cell 将数据移到 /kaggle/working。
+        - 方式 B：如果仓库公开并允许联网，使用 git clone。
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 3A.（可选）如果你上传为 Kaggle Dataset，拷贝到工作目录（替换 DATASET_DIR）
+        import os, shutil
+        DATASET_DIR = "/kaggle/input/your_dataset_name" # 改为你的 dataset 路径
+        TARGET = "/kaggle/working/project"
+        if os.path.exists(DATASET_DIR):
+        shutil.copytree(DATASET_DIR, TARGET, dirs_exist_ok=True)
+        print("已拷贝 dataset 到", TARGET)
+        else:
+        print("未找到 dataset：", DATASET_DIR)
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 3B.（可选）使用 git clone（若启用了 Internet 并且仓库公开）
+        REPO_URL = "https://github.com/yourname/yourrepo.git" # 改为你的仓库 URL
+        !rm -rf repo || true
+        !git clone {REPO_URL} repo || echo "git clone failed or no internet"
+        # 若仓库结构不同，请调整后续路径
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 4. 切换到项目目录（根据你放置位置修改）
+        import os
+        # 示例：如果用 dataset 拷贝到 /kaggle/working/project
+        PROJECT_DIR = "/kaggle/working/project" # 或 "repo"（如果用 git clone）
+        if os.path.exists(PROJECT_DIR):
+        os.chdir(PROJECT_DIR)
+        print("当前工作目录:", os.getcwd())
+        else:
+        print("请修改 PROJECT_DIR 为项目所在路径；当前路径不存在:", PROJECT_DIR)
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 5. 确保 models 目录存在用于保存权重
+        import os
+        os.makedirs("models", exist_ok=True)
+        print("models 目录准备完毕:", os.path.abspath("models"))
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 6. 修正 dqn.py 中的 game 路径（如果脚本中使用 sys.path.append("game/"), 把它替换为绝对路径）
+        # 这会在运行时修改文件，以便在 Kaggle 环境下正确导入 game 模块
+        import io, os
+        fp = "thesis/dqn.py" # 根据实际文件位置修改
+        if os.path.exists(fp):
+        s = open(fp, "r", encoding="utf-8").read()
+        if 'sys.path.append("game/")' in s or "sys.path.append('game/')" in s:
+        cwd = os.getcwd().replace("\\", "/")
+        new = s.replace('sys.path.append("game/")', f'sys.path.append(r"{cwd}/game")')
+        new = new.replace("sys.path.append('game/')", f'sys.path.append(r"{cwd}/game")')
+        open(fp, "w", encoding="utf-8").write(new)
+        print("已更新 sys.path 路径指向：", cwd + "/game")
+        else:
+        print("dqn.py 中没有直接的 sys.path.append('game/'), 请确认路径是否正确。")
+        else:
+        print("未找到文件：", fp)
+    </VSCode.Cell>
+
+    <VSCode.Cell language="markdown">
+        运行注意事项（简短）：
+        - Kaggle session 有时间/内存限制，完整训练可能被中断。可先短跑验证（修改训练循环或减少步数）。
+        - 如果 wrapped_flappy_bird 或 game 依赖 pygame 显示，pyvirtualdisplay 应允许在 headless 环境运行。
+        - 若需 GPU，请在 Notebook Settings 开启 GPU；再确认 TensorFlow 版本与 Kaggle 环境兼容。
+    </VSCode.Cell>
+
+    <VSCode.Cell language="python">
+        # 7. 启动训练脚本（使用 -u 打印实时日志）
+        # 根据实际路径修改脚本路径；下面假设 thesis/dqn.py
+        !python -u thesis/dqn.py
+    </VSCode.Cell>
+</VSCode.Notebook>

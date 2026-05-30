@@ -7,7 +7,7 @@
 		"dev:frontend": "cd frontend && npm run dev",
 		"dev:backend": "npx wrangler pages dev --port 8788",
 		"deploy-react": "cd frontend && npm run build && cd .. && npx wrangler pages deploy frontend/dist",
-		"deploy-next": "cd frontend && npx next build && cd .. && npx wrangler pages deploy frontend/dist"
+		"deploy-next": "cd frontend && npx next build && cd .. && npx wrangler pages deploy frontend/out"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
