@@ -1,6 +1,9 @@
 # プロジェクト概要：Lilyco Storybook 自動創作プラットフォーム
-- https://dev.novel-comic-site.pages.dev/
-- AI技術を勉強するための初めてのプロジェクトで、2025年8月10日から始まり、現在開発中です。
+
+> **AI-powered automated picture-book creation platform** — LLM agents (LangChain / LangGraph) orchestrate story & illustration generation; Next.js frontend served on Cloudflare's edge network.
+> 🌐 **Live Demo:** https://dev.novel-comic-site.pages.dev/
+
+- LLMエージェントとフルスタック開発の実践プロジェクト。2025年8月10日から開発を継続中。
 
 ## 1. プロジェクト概観
 
