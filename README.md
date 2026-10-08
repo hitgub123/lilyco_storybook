@@ -2,6 +2,7 @@
 
 > **AI-powered automated picture-book creation platform** — LLM agents (LangChain / LangGraph) orchestrate story & illustration generation; Next.js frontend served on Cloudflare's edge network.
 > 🌐 **Live Demo:** https://dev.novel-comic-site.pages.dev/
+> 🤖 **AI-assisted development** — アーキテクチャ設計と主要な技術的意思決定は作者によるものです。
 
 - LLMエージェントとフルスタック開発の実践プロジェクト。2025年8月10日から開発を継続中。
 
